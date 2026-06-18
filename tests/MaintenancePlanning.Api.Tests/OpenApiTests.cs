@@ -21,6 +21,9 @@ public sealed class OpenApiTests
         Assert.True(paths.TryGetProperty("/health/startup", out _));
         Assert.True(paths.TryGetProperty("/health/live", out _));
         Assert.True(paths.TryGetProperty("/health/ready", out _));
+        Assert.True(paths.TryGetProperty("/api/v1/imports/source-work-orders", out _));
+        Assert.True(paths.TryGetProperty("/api/v1/imports/maintenance-events", out _));
         Assert.True(paths.TryGetProperty("/api/v1/operations/migration-readiness", out _));
+        Assert.True(paths.TryGetProperty("/api/v1/operations/posture", out _));
     }
 }

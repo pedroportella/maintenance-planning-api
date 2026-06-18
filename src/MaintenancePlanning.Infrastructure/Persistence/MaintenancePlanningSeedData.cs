@@ -161,10 +161,13 @@ internal static class MaintenancePlanningSeedData
             SourceSystem = "synthetic-source",
             ImportKind = "work-orders",
             IdempotencyKey = "seed-work-orders-2026-01-15",
+            RequestHash = "sha256-seed-work-orders",
             Status = IntegrationImportStatus.Completed,
             ReceivedCount = 2,
             AcceptedCount = 2,
             RejectedCount = 0,
+            IgnoredDuplicateCount = 0,
+            IgnoredStaleCount = 0,
             FailureCode = null,
             ReceivedAtUtc = BaseTime,
             CompletedAtUtc = BaseTime.AddMinutes(4)
@@ -176,11 +179,20 @@ internal static class MaintenancePlanningSeedData
             IntegrationImportId = IntegrationImportId,
             EventId = "seed-event-1000",
             EventType = "work-order-imported",
+            SchemaVersion = "1.0",
+            SourceSystem = "synthetic-source",
+            SourceRecordId = "WO-1000",
+            CorrelationId = "seed-correlation-1000",
+            IdempotencyKey = "seed-work-order-event-1000",
+            Disposition = "accepted",
             Status = IntegrationEventStatus.Accepted,
             WorkOrderSourceId = "WO-1000",
             PayloadHash = "sha256-seed-event",
             OccurredAtUtc = BaseTime,
-            RecordedAtUtc = BaseTime.AddMinutes(4)
+            PublishedAtUtc = BaseTime.AddMinutes(1),
+            RecordedAtUtc = BaseTime.AddMinutes(4),
+            Readiness = nameof(SourceDataReadiness.Ready),
+            ValidationIssueCode = null
         });
 
         modelBuilder.Entity<OutboxEvent>().HasData(new OutboxEvent

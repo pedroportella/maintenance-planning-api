@@ -1,6 +1,6 @@
 # Reviewer Runbook
 
-Current state: .NET API and worker skeleton with health endpoints, OpenAPI JSON, safe errors, tests, SQL Server persistence through EF Core migrations and a containerised API runtime path.
+Current state: .NET API and worker skeleton with health endpoints, OpenAPI JSON, safe errors, tests, SQL Server persistence through EF Core migrations, local HTTP import contracts for synthetic source-system-shaped events and a containerised API runtime path.
 
 ## Local Checks
 
@@ -36,7 +36,7 @@ The planned local smoke will:
 
 1. wait for API readiness;
 2. verify SQL Server readiness;
-3. import a deterministic synthetic scenario;
+3. post a deterministic synthetic scenario to the local import endpoint;
 4. retry the import and confirm idempotency;
 5. start a planning run;
 6. fetch recommendations;

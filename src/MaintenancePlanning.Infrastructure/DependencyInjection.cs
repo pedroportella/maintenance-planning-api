@@ -1,5 +1,6 @@
 using MaintenancePlanning.Application.Persistence;
 using MaintenancePlanning.Application.Readiness;
+using MaintenancePlanning.Application.Imports;
 using MaintenancePlanning.Infrastructure.Persistence;
 using MaintenancePlanning.Infrastructure.Readiness;
 using Microsoft.EntityFrameworkCore;
@@ -39,11 +40,13 @@ public static class DependencyInjection
             });
 
             services.AddScoped<IMigrationReadinessReporter, DbMigrationReadinessReporter>();
+            services.AddScoped<IImportStore, EfImportStore>();
             services.TryAddSingleton<IReadinessProbe, DatabaseReadinessProbe>();
         }
         else
         {
             services.TryAddSingleton<IMigrationReadinessReporter, UnconfiguredMigrationReadinessReporter>();
+            services.TryAddSingleton<IImportStore, UnavailableImportStore>();
             services.TryAddSingleton<IReadinessProbe, NoExternalDependencyReadinessProbe>();
         }
 

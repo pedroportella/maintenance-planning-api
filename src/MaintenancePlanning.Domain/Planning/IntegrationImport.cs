@@ -10,6 +10,8 @@ public sealed class IntegrationImport
 
     public string IdempotencyKey { get; set; } = "";
 
+    public string RequestHash { get; set; } = "";
+
     public IntegrationImportStatus Status { get; set; }
 
     public int ReceivedCount { get; set; }
@@ -17,6 +19,10 @@ public sealed class IntegrationImport
     public int AcceptedCount { get; set; }
 
     public int RejectedCount { get; set; }
+
+    public int IgnoredDuplicateCount { get; set; }
+
+    public int IgnoredStaleCount { get; set; }
 
     public string? FailureCode { get; set; }
 

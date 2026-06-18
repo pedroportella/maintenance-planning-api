@@ -207,6 +207,7 @@ public sealed class MaintenancePlanningDbContext(DbContextOptions<MaintenancePla
         entity.Property(item => item.SourceSystem).HasMaxLength(80);
         entity.Property(item => item.ImportKind).HasMaxLength(80);
         entity.Property(item => item.IdempotencyKey).HasMaxLength(160);
+        entity.Property(item => item.RequestHash).HasMaxLength(128);
         entity.Property(item => item.Status).HasConversion<string>().HasMaxLength(40);
         entity.Property(item => item.FailureCode).HasMaxLength(80);
     }
@@ -216,11 +217,20 @@ public sealed class MaintenancePlanningDbContext(DbContextOptions<MaintenancePla
         entity.ToTable("integration_events");
         entity.HasKey(item => item.Id);
         entity.HasIndex(item => item.EventId).IsUnique();
+        entity.HasIndex(item => new { item.SourceSystem, item.IdempotencyKey }).IsUnique();
         entity.Property(item => item.EventId).HasMaxLength(160);
         entity.Property(item => item.EventType).HasMaxLength(80);
+        entity.Property(item => item.SchemaVersion).HasMaxLength(20);
+        entity.Property(item => item.SourceSystem).HasMaxLength(80);
+        entity.Property(item => item.SourceRecordId).HasMaxLength(120);
+        entity.Property(item => item.CorrelationId).HasMaxLength(160);
+        entity.Property(item => item.IdempotencyKey).HasMaxLength(160);
+        entity.Property(item => item.Disposition).HasMaxLength(80);
         entity.Property(item => item.Status).HasConversion<string>().HasMaxLength(40);
         entity.Property(item => item.WorkOrderSourceId).HasMaxLength(120);
         entity.Property(item => item.PayloadHash).HasMaxLength(128);
+        entity.Property(item => item.Readiness).HasMaxLength(40);
+        entity.Property(item => item.ValidationIssueCode).HasMaxLength(80);
         entity
             .HasOne(item => item.IntegrationImport)
             .WithMany(item => item.Events)

@@ -1,3 +1,5 @@
+using MaintenancePlanning.Application.Imports;
+using MaintenancePlanning.Application.Operations;
 using MaintenancePlanning.Application.Persistence;
 
 namespace MaintenancePlanning.Api.Endpoints;
@@ -14,6 +16,11 @@ public static class OperationsEndpoints
             .Produces<MigrationReadinessReport>(StatusCodes.Status200OK)
             .Produces<MigrationReadinessReport>(StatusCodes.Status503ServiceUnavailable);
 
+        operations
+            .MapGet("/posture", GetPostureAsync)
+            .WithName("GetOperationsPosture")
+            .Produces<OperationsPostureReport>(StatusCodes.Status200OK);
+
         return endpoints;
     }
 
@@ -26,5 +33,33 @@ public static class OperationsEndpoints
         return report.IsReady
             ? Results.Ok(report)
             : Results.Json(report, statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+
+    private static async Task<IResult> GetPostureAsync(
+        IImportStore importStore,
+        CancellationToken cancellationToken)
+    {
+        var latestImport = importStore.IsConfigured
+            ? await importStore.FindLatestImportAsync(cancellationToken)
+            : null;
+
+        return Results.Ok(new OperationsPostureReport(
+            DatabaseConfigured: importStore.IsConfigured,
+            Status: importStore.IsConfigured ? "ready" : "import-persistence-not-configured",
+            LatestImport: latestImport is null
+                ? null
+                : new LatestImportFreshness(
+                    latestImport.ImportId,
+                    latestImport.SourceSystem,
+                    latestImport.ImportKind,
+                    latestImport.Status,
+                    latestImport.ReceivedCount,
+                    latestImport.AcceptedCount,
+                    latestImport.RejectedCount,
+                    latestImport.IgnoredDuplicateCount,
+                    latestImport.IgnoredStaleCount,
+                    latestImport.ReceivedAtUtc,
+                    latestImport.CompletedAtUtc),
+            CheckedAtUtc: DateTimeOffset.UtcNow));
     }
 }

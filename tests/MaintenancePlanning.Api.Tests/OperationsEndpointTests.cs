@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using MaintenancePlanning.Application.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -34,6 +35,23 @@ public sealed class OperationsEndpointTests
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         Assert.Contains("\"status\":\"pending-migrations\"", body, StringComparison.Ordinal);
         Assert.Contains("\"pendingMigrationCount\":1", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Posture_ReturnsUnconfiguredState_WhenDatabaseIsNotConfigured()
+    {
+        await using var host = await TestApiHost.StartAsync();
+
+        var response = await host.Client.GetAsync("/api/v1/operations/posture");
+        var body = await response.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(body);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.False(document.RootElement.GetProperty("databaseConfigured").GetBoolean());
+        Assert.Equal(
+            "import-persistence-not-configured",
+            document.RootElement.GetProperty("status").GetString());
+        Assert.Equal(JsonValueKind.Null, document.RootElement.GetProperty("latestImport").ValueKind);
     }
 
     private sealed class PendingMigrationReporter : IMigrationReadinessReporter

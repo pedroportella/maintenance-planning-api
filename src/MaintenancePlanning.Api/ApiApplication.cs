@@ -3,6 +3,7 @@ using MaintenancePlanning.Api.Errors;
 using MaintenancePlanning.Api.Health;
 using MaintenancePlanning.Api.Hosting;
 using MaintenancePlanning.Api.Middleware;
+using MaintenancePlanning.Application.Imports;
 using MaintenancePlanning.Infrastructure;
 using Microsoft.OpenApi.Models;
 
@@ -53,6 +54,7 @@ public static class ApiApplication
         builder.Services.AddSingleton<ICorrelationIdAccessor, CorrelationIdAccessor>();
         builder.Services.AddSingleton<ApplicationLifecycleState>();
 
+        builder.Services.AddScoped<IImportService, ImportService>();
         builder.Services.AddInfrastructureServices(builder.Configuration);
 
         builder.Services
@@ -100,6 +102,7 @@ public static class ApiApplication
         }
 
         app.MapHealthEndpoints();
+        app.MapImportEndpoints();
         app.MapOperationsEndpoints();
     }
 }
