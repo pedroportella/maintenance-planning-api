@@ -1,0 +1,13 @@
+name: maintenance-planning-api
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    profiles:
+      - sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD for local SQL Server}
+    ports:
+      - "${MSSQL_HOST_PORT:-14333}:1433"

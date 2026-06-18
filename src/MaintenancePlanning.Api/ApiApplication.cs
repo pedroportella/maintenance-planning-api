@@ -53,7 +53,7 @@ public static class ApiApplication
         builder.Services.AddSingleton<ICorrelationIdAccessor, CorrelationIdAccessor>();
         builder.Services.AddSingleton<ApplicationLifecycleState>();
 
-        builder.Services.AddInfrastructureServices();
+        builder.Services.AddInfrastructureServices(builder.Configuration);
 
         builder.Services
             .AddHealthChecks()
@@ -100,5 +100,6 @@ public static class ApiApplication
         }
 
         app.MapHealthEndpoints();
+        app.MapOperationsEndpoints();
     }
 }

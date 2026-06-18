@@ -7,6 +7,8 @@
     "container:build": "node scripts/container-build.mjs",
     "container:run": "node scripts/container-run.mjs",
     "container:smoke": "node scripts/container-smoke.mjs",
+    "db:migrate": "dotnet dotnet-ef database update --project src/MaintenancePlanning.Infrastructure/MaintenancePlanning.Infrastructure.csproj --startup-project src/MaintenancePlanning.Infrastructure/MaintenancePlanning.Infrastructure.csproj --context MaintenancePlanningDbContext",
+    "db:smoke": "node scripts/database-smoke.mjs",
     "guard": "node scripts/quality-guards.mjs all",
     "guard:artifacts": "node scripts/quality-guards.mjs artifacts",
     "guard:public-docs": "node scripts/quality-guards.mjs public-docs",

@@ -1,6 +1,6 @@
 # Reviewer Runbook
 
-Current state: initial .NET API and worker skeleton with health endpoints, OpenAPI JSON, safe errors, tests and a containerised API runtime path.
+Current state: .NET API and worker skeleton with health endpoints, OpenAPI JSON, safe errors, tests, SQL Server persistence through EF Core migrations and a containerised API runtime path.
 
 ## Local Checks
 
@@ -10,7 +10,16 @@ dotnet test MaintenancePlanning.sln --no-restore --disable-build-servers -m:1 -p
 node scripts/quality-guards.mjs all
 node scripts/reviewer-evidence-smoke.mjs
 node scripts/container-smoke.mjs
+node scripts/database-smoke.mjs
 ```
+
+## Database Smoke
+
+```bash
+node scripts/database-smoke.mjs
+```
+
+The smoke starts an isolated local SQL Server compose project, applies EF Core migrations explicitly, starts the API with database configuration, checks `/health/ready`, checks `/api/v1/operations/migration-readiness`, then removes the isolated compose resources.
 
 ## Container Smoke
 

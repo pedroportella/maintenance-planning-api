@@ -36,6 +36,23 @@ curl -fsS http://localhost:5000/health/live
 curl -fsS http://localhost:5000/health/ready
 ```
 
+## Local SQL Server
+
+SQL Server can be started for local persistence checks through the compose profile:
+
+```bash
+export MSSQL_SA_PASSWORD="<local-password>"
+docker compose --profile sqlserver up -d sqlserver
+```
+
+The default host port is `14333`. The API uses explicit environment variables for local database configuration; see `.env.local.example` for placeholder values.
+
+Apply migrations explicitly before expecting database-backed readiness to pass:
+
+```bash
+dotnet dotnet-ef database update --project src/MaintenancePlanning.Infrastructure/MaintenancePlanning.Infrastructure.csproj --startup-project src/MaintenancePlanning.Infrastructure/MaintenancePlanning.Infrastructure.csproj --context MaintenancePlanningDbContext
+```
+
 ## Restricted Smoke
 
 The smoke script builds the image unless `--skip-build` is supplied, checks that source-only and local-only files are absent from the final image, starts the API with runtime restrictions, waits for startup, liveness and readiness health, then stops the container.

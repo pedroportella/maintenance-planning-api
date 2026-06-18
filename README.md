@@ -30,7 +30,7 @@ This is a prototype for review and learning. It does not connect to any employer
 
 ## Current State
 
-The repository now contains the initial .NET API, worker and test solution skeleton plus a containerised API runtime path. Implemented foundation capabilities include startup, liveness and readiness health endpoints, OpenAPI JSON, correlation ids, safe problem-details errors, structured console logging, graceful shutdown state and a restricted container smoke.
+The repository now contains the initial .NET API, worker and test solution skeleton, a containerised API runtime path, and SQL Server persistence through EF Core migrations. Implemented foundation capabilities include startup, liveness and readiness health endpoints, OpenAPI JSON, migration readiness reporting, correlation ids, safe problem-details errors, structured console logging, graceful shutdown state, explicit local migrations and a restricted container smoke.
 
 ## Run Locally
 
@@ -44,6 +44,19 @@ Useful local endpoints:
 - `GET /health/live`
 - `GET /health/ready`
 - `GET /openapi/v1.json`
+- `GET /api/v1/operations/migration-readiness`
+
+To run with local SQL Server:
+
+```bash
+dotnet tool restore
+export MSSQL_SA_PASSWORD="<local-password>"
+docker compose --profile sqlserver up -d sqlserver
+dotnet dotnet-ef database update --project src/MaintenancePlanning.Infrastructure/MaintenancePlanning.Infrastructure.csproj --startup-project src/MaintenancePlanning.Infrastructure/MaintenancePlanning.Infrastructure.csproj --context MaintenancePlanningDbContext
+MaintenancePlanning__Database__Enabled=true MaintenancePlanning__Database__Server=127.0.0.1,14333 MaintenancePlanning__Database__Database=MaintenancePlanning MaintenancePlanning__Database__User=sa MaintenancePlanning__Database__Password="$MSSQL_SA_PASSWORD" dotnet run --project src/MaintenancePlanning.Api/MaintenancePlanning.Api.csproj
+```
+
+The API reports pending migrations but does not apply schema changes during startup.
 
 ## Checks
 
@@ -53,4 +66,5 @@ dotnet test MaintenancePlanning.sln --no-restore --disable-build-servers -m:1 -p
 node scripts/quality-guards.mjs all
 node scripts/reviewer-evidence-smoke.mjs
 node scripts/container-smoke.mjs
+node scripts/database-smoke.mjs
 ```

@@ -6,6 +6,7 @@ Planned HTTP surface:
 - `GET /health/live`
 - `GET /health/ready`
 - `GET /openapi/v1.json`
+- `GET /api/v1/operations/migration-readiness`
 - `GET /api/v1/operations/posture`
 - `POST /api/v1/imports/source-work-orders`
 - `POST /api/v1/imports/maintenance-events`
@@ -16,3 +17,5 @@ Planned HTTP surface:
 - `POST /api/v1/packages/{id}/decisions`
 
 Errors should use `application/problem+json` with a correlation identifier.
+
+`GET /api/v1/operations/migration-readiness` reports whether SQL Server is configured, reachable and up to date with EF Core migrations. It does not apply migrations.
