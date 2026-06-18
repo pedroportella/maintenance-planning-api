@@ -13,7 +13,7 @@ Durable repo guidance for the maintenance-planning API prototype.
 
 - This is a neutral review prototype for maintenance planning and asset operations workflows.
 - Use synthetic data only.
-- Do not use company branding, industry-specific language, real client data, real SAP access or production-infrastructure claims.
+- Do not use company branding, industry-specific language, real client data, real source-system access or production-infrastructure claims.
 - Prefer honest language: prototype, production-shaped, review environment, synthetic source, future integration point and production-next.
 
 ## Backend Rules
@@ -27,7 +27,7 @@ Durable repo guidance for the maintenance-planning API prototype.
 
 ## Integration Rules
 
-- Treat SAP-shaped data as synthetic and adapter-ready.
+- Treat source-system-shaped data as synthetic and adapter-ready.
 - Preserve upstream source identifiers separately from product-owned state.
 - Use idempotency keys, event ids, correlation ids and integration audit records.
 - Surface source freshness, failed batches, queue depth and DLQ state in operations posture.

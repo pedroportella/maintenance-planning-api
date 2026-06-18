@@ -12,4 +12,4 @@ This repository owns the API, worker, persistence, infrastructure and reviewer e
 
 ## Boundary
 
-All source data is synthetic. Real SAP access, employer/client systems, production identity, production resilience and formal assurance are production-next concerns.
+All source data is synthetic. Real source-system access, employer/client systems, production identity, production resilience and formal assurance are production-next concerns.

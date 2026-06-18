@@ -6,7 +6,7 @@ Neutral review prototype for a production-shaped maintenance-planning API.
 
 This repository will contain a .NET API and worker service for synthetic maintenance-planning workflows:
 
-- SAP-shaped work-order import contracts using synthetic data;
+- source-system-shaped work-order import contracts using synthetic data;
 - SQL Server persistence through EF Core;
 - idempotent imports and event processing;
 - planning runs and explainable work-order package recommendations;
@@ -15,7 +15,7 @@ This repository will contain a .NET API and worker service for synthetic mainten
 
 ## Boundary
 
-This is a prototype for review and learning. It does not connect to any employer, client or production SAP system. All data is synthetic, and production concerns such as enterprise identity, high availability, formal security assurance and production support remain production-next work unless explicitly implemented.
+This is a prototype for review and learning. It does not connect to any employer, client or production source system. All data is synthetic, and production concerns such as enterprise identity, high availability, formal security assurance and production support remain production-next work unless explicitly implemented.
 
 ## Start Here
 
