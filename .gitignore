@@ -1,0 +1,45 @@
+# Build outputs
+bin/
+obj/
+dist/
+build/
+coverage/
+TestResults/
+test-results/
+playwright-report/
+
+# Local config and secrets
+.env
+.env.*
+!.env.example
+!.env.local.example
+*.user
+*.suo
+
+# Local data
+*.db
+*.sqlite
+*.sqlite3
+*.bak
+*.mdf
+*.ldf
+data/
+
+# Terraform
+.terraform/
+terraform.tfstate
+terraform.tfstate.*
+*.tfplan
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# AWS/local tooling
+.aws/
+
+# IDE/OS
+.DS_Store
+.idea/
+.vscode/
