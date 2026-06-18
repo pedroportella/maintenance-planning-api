@@ -29,11 +29,26 @@ This is a prototype for review and learning. It does not connect to any employer
 
 ## Current State
 
-Foundation guardrails only. Product code will be added in later stages.
+The repository now contains the initial .NET API, worker and test solution skeleton. Implemented foundation capabilities include startup, liveness and readiness health endpoints, OpenAPI JSON, correlation ids, safe problem-details errors, structured console logging and graceful shutdown state.
+
+## Run Locally
+
+```bash
+dotnet run --project src/MaintenancePlanning.Api/MaintenancePlanning.Api.csproj
+```
+
+Useful local endpoints:
+
+- `GET /health/startup`
+- `GET /health/live`
+- `GET /health/ready`
+- `GET /openapi/v1.json`
 
 ## Checks
 
 ```bash
+dotnet format MaintenancePlanning.sln --verify-no-changes --no-restore
+dotnet test MaintenancePlanning.sln --no-restore --disable-build-servers -m:1 -p:UseSharedCompilation=false
 node scripts/quality-guards.mjs all
 node scripts/reviewer-evidence-smoke.mjs
 ```

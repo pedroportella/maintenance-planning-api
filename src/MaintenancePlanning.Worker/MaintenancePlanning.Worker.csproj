@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MaintenancePlanning.Application\MaintenancePlanning.Application.csproj" />
+    <ProjectReference Include="..\MaintenancePlanning.Infrastructure\MaintenancePlanning.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

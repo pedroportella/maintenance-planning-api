@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MaintenancePlanning.Application\MaintenancePlanning.Application.csproj" />
+    <ProjectReference Include="..\MaintenancePlanning.Infrastructure\MaintenancePlanning.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

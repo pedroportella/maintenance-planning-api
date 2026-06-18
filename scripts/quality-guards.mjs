@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { join, relative } from "node:path";
 
 const mode = process.argv[2] ?? "all";
@@ -62,6 +63,23 @@ function listFiles(directory) {
   return files;
 }
 
+function listGitCandidateFiles() {
+  try {
+    const output = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"]
+    });
+
+    return output
+      .split("\n")
+      .filter(Boolean)
+      .map((path) => join(root, path));
+  } catch {
+    return listFiles(root);
+  }
+}
+
 function relativePath(filePath) {
   return relative(root, filePath).replaceAll("\\", "/");
 }
@@ -73,7 +91,7 @@ function readText(filePath) {
 function checkArtifacts() {
   const failures = [];
 
-  for (const filePath of listFiles(root)) {
+  for (const filePath of listGitCandidateFiles()) {
     const rel = relativePath(filePath);
     const fileName = rel.split("/").at(-1);
 
@@ -120,7 +138,7 @@ function checkPublicDocs() {
 function checkSecrets() {
   const failures = [];
 
-  for (const filePath of listFiles(root)) {
+  for (const filePath of listGitCandidateFiles()) {
     const rel = relativePath(filePath);
     if (rel.startsWith(".git/")) continue;
 

@@ -2,8 +2,10 @@
 
 Planned HTTP surface:
 
+- `GET /health/startup`
 - `GET /health/live`
 - `GET /health/ready`
+- `GET /openapi/v1.json`
 - `GET /api/v1/operations/posture`
 - `POST /api/v1/imports/source-work-orders`
 - `POST /api/v1/imports/maintenance-events`
