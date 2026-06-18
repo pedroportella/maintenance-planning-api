@@ -7,6 +7,7 @@ Production work would require:
 - private networking and stricter environment separation;
 - high availability and restore drills;
 - full observability and alert routing;
+- SBOM and provenance attestations, image signing and registry vulnerability scanning;
 - formal threat modelling and security review;
 - operational support, incident and cost-management processes.
 

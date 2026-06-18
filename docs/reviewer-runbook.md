@@ -1,6 +1,6 @@
 # Reviewer Runbook
 
-Current state: initial .NET API and worker skeleton with health endpoints, OpenAPI JSON, safe errors and tests.
+Current state: initial .NET API and worker skeleton with health endpoints, OpenAPI JSON, safe errors, tests and a containerised API runtime path.
 
 ## Local Checks
 
@@ -9,7 +9,17 @@ dotnet format MaintenancePlanning.sln --verify-no-changes --no-restore
 dotnet test MaintenancePlanning.sln --no-restore --disable-build-servers -m:1 -p:UseSharedCompilation=false
 node scripts/quality-guards.mjs all
 node scripts/reviewer-evidence-smoke.mjs
+node scripts/container-smoke.mjs
 ```
+
+## Container Smoke
+
+```bash
+node scripts/container-build.mjs
+node scripts/container-smoke.mjs --skip-build
+```
+
+The smoke checks startup, liveness, readiness, final image contents and graceful container stop behaviour.
 
 ## Future Local Smoke
 

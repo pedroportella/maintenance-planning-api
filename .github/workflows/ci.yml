@@ -16,19 +16,44 @@ jobs:
   quality:
     name: Foundation quality gate
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
 
+      - name: Restore .NET solution
+        run: dotnet restore MaintenancePlanning.sln
+
+      - name: Check .NET formatting
+        run: dotnet format MaintenancePlanning.sln --verify-no-changes --no-restore
+
+      - name: Run .NET tests
+        run: dotnet test MaintenancePlanning.sln --no-restore --disable-build-servers -m:1 -p:UseSharedCompilation=false
+
       - name: Run quality guards
         run: node scripts/quality-guards.mjs all
 
       - name: Run reviewer evidence smoke
         run: node scripts/reviewer-evidence-smoke.mjs
+
+      - name: Build API container image
+        env:
+          IMAGE_NAME: maintenance-planning-api:${{ github.sha }}
+          SOURCE_REVISION: ${{ github.sha }}
+        run: node scripts/container-build.mjs
+
+      - name: Smoke API container image
+        env:
+          IMAGE_NAME: maintenance-planning-api:${{ github.sha }}
+        run: node scripts/container-smoke.mjs --skip-build

@@ -12,5 +12,6 @@ Planned controls:
 - rate limiting;
 - idempotency for non-idempotent commands;
 - operations posture with source freshness, failed batches, queue depth and DLQ state.
+- non-root API container runtime, restricted container smoke and explicit image identity.
 
 Do not expose secrets, connection strings, stack traces or raw infrastructure details in public responses or docs.

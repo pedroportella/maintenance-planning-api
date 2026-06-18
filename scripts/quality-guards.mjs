@@ -13,6 +13,8 @@ const ignoredDirectories = new Set([".git", "node_modules"]);
 const generatedPathRules = [
   { label: "build output", pattern: /(^|\/)(bin|obj|dist|build)(\/|$)/ },
   { label: "coverage output", pattern: /(^|\/)(coverage|TestResults|test-results|playwright-report)(\/|$)/ },
+  { label: "container image archive", pattern: /(^|\/).*?(container|docker|image).*?\.(tar|tar\.gz|tgz|oci)$/i },
+  { label: "container build log", pattern: /(^|\/).*?(container|docker|image).*?build.*?\.(log|txt)$/i },
   { label: "terraform working directory", pattern: /(^|\/)\.terraform(\/|$)/ },
   { label: "terraform state", pattern: /(^|\/)terraform\.tfstate(\..*)?$/ },
   { label: "terraform plan", pattern: /\.tfplan$/ },
@@ -36,6 +38,7 @@ const publicDocForbiddenPatterns = [
 
 const secretPatterns = [
   { label: "SQL Server connection string", pattern: /Server=.*;.*(Password|Pwd)=/i },
+  { label: "Docker build secret argument", pattern: /docker\s+build[\s\S]*--build-arg\s+\S*(?:secret|token|password|key)/i },
   { label: "AWS access key", pattern: /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/ },
   { label: "JWT secret", pattern: /(jwt|token|client)[_-]?secret\s*[:=]/i },
   { label: "private key", pattern: /-----BEGIN [A-Z ]*PRIVATE KEY-----/ }

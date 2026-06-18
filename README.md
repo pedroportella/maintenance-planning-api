@@ -21,6 +21,7 @@ This is a prototype for review and learning. It does not connect to any employer
 
 - [Architecture](docs/architecture.md)
 - [API](docs/api.md)
+- [Containerisation](docs/containerisation.md)
 - [Event contracts](docs/event-contracts.md)
 - [AWS and Terraform](docs/aws-terraform.md)
 - [Security and operations](docs/security-and-operations.md)
@@ -29,7 +30,7 @@ This is a prototype for review and learning. It does not connect to any employer
 
 ## Current State
 
-The repository now contains the initial .NET API, worker and test solution skeleton. Implemented foundation capabilities include startup, liveness and readiness health endpoints, OpenAPI JSON, correlation ids, safe problem-details errors, structured console logging and graceful shutdown state.
+The repository now contains the initial .NET API, worker and test solution skeleton plus a containerised API runtime path. Implemented foundation capabilities include startup, liveness and readiness health endpoints, OpenAPI JSON, correlation ids, safe problem-details errors, structured console logging, graceful shutdown state and a restricted container smoke.
 
 ## Run Locally
 
@@ -51,4 +52,5 @@ dotnet format MaintenancePlanning.sln --verify-no-changes --no-restore
 dotnet test MaintenancePlanning.sln --no-restore --disable-build-servers -m:1 -p:UseSharedCompilation=false
 node scripts/quality-guards.mjs all
 node scripts/reviewer-evidence-smoke.mjs
+node scripts/container-smoke.mjs
 ```

@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "container:build": "node scripts/container-build.mjs",
+    "container:run": "node scripts/container-run.mjs",
+    "container:smoke": "node scripts/container-smoke.mjs",
     "guard": "node scripts/quality-guards.mjs all",
     "guard:artifacts": "node scripts/quality-guards.mjs artifacts",
     "guard:public-docs": "node scripts/quality-guards.mjs public-docs",
