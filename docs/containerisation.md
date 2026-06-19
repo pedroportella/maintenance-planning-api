@@ -41,11 +41,11 @@ curl -fsS http://localhost:5000/health/ready
 SQL Server can be started for local persistence checks through the compose profile:
 
 ```bash
-export MSSQL_SA_PASSWORD="<local-password>"
-docker compose --profile sqlserver up -d sqlserver
+cp .env.local.example .env.local
+docker compose --env-file .env.local --profile sqlserver up -d sqlserver
 ```
 
-The default host port is `14333`. The API uses explicit environment variables for local database configuration; see `.env.local.example` for placeholder values.
+The default host port is `14333`. The API uses explicit environment variables for local database configuration; copy `.env.local.example` to `.env.local` for local values.
 
 Apply migrations explicitly before expecting database-backed readiness to pass:
 

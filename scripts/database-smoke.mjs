@@ -2,14 +2,16 @@
 
 import { execFileSync, spawn } from "node:child_process";
 import { createServer } from "node:net";
+import { loadLocalEnv } from "./env-loader.mjs";
 
-const sqlPassword = process.env.MSSQL_SA_PASSWORD ?? "LocalOnly_Passw0rd_123!";
-const sqlPort = process.env.MSSQL_HOST_PORT ?? String(await findFreePort());
-const apiPort = process.env.API_HOST_PORT ?? String(await findFreePort());
-const composeProjectName = process.env.COMPOSE_PROJECT_NAME ?? `maintenance-planning-api-smoke-${Date.now()}`;
+const localEnv = loadLocalEnv();
+const sqlPassword = localEnv.MSSQL_SA_PASSWORD ?? "LocalOnly_Passw0rd_123!";
+const sqlPort = localEnv.MSSQL_HOST_PORT ?? String(await findFreePort());
+const apiPort = localEnv.API_HOST_PORT ?? String(await findFreePort());
+const composeProjectName = localEnv.COMPOSE_PROJECT_NAME ?? `maintenance-planning-api-smoke-${Date.now()}`;
 
 const databaseEnvironment = {
-  ...process.env,
+  ...localEnv,
   MSSQL_SA_PASSWORD: sqlPassword,
   MSSQL_HOST_PORT: sqlPort,
   MaintenancePlanning__Database__Enabled: "true",

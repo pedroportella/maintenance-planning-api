@@ -7,6 +7,7 @@ const requiredFiles = [
   "README.md",
   "AGENTS.md",
   ".cursorrules",
+  ".env.local.example",
   "docs/architecture.md",
   "docs/api.md",
   "docs/aws-terraform.md",
@@ -14,7 +15,8 @@ const requiredFiles = [
   "docs/event-contracts.md",
   "docs/production-next.md",
   "docs/reviewer-runbook.md",
-  "docs/security-and-operations.md"
+  "docs/security-and-operations.md",
+  "scripts/env-loader.mjs"
 ];
 
 const requiredReadmeText = [

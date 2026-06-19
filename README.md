@@ -56,10 +56,13 @@ To run with local SQL Server:
 
 ```bash
 dotnet tool restore
-export MSSQL_SA_PASSWORD="<local-password>"
-docker compose --profile sqlserver up -d sqlserver
+cp .env.local.example .env.local
+docker compose --env-file .env.local --profile sqlserver up -d sqlserver
+set -a
+. ./.env.local
+set +a
 dotnet dotnet-ef database update --project src/MaintenancePlanning.Infrastructure/MaintenancePlanning.Infrastructure.csproj --startup-project src/MaintenancePlanning.Infrastructure/MaintenancePlanning.Infrastructure.csproj --context MaintenancePlanningDbContext
-MaintenancePlanning__Database__Enabled=true MaintenancePlanning__Database__Server=127.0.0.1,14333 MaintenancePlanning__Database__Database=MaintenancePlanning MaintenancePlanning__Database__User=sa MaintenancePlanning__Database__Password="$MSSQL_SA_PASSWORD" dotnet run --project src/MaintenancePlanning.Api/MaintenancePlanning.Api.csproj
+dotnet run --project src/MaintenancePlanning.Api/MaintenancePlanning.Api.csproj
 ```
 
 The API reports pending migrations but does not apply schema changes during startup.
