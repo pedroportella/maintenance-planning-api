@@ -91,6 +91,16 @@ node scripts/migration-container-build.mjs
 
 The image contains an EF Core migration bundle and no API listener. It is intended for one-off ECS task execution through the [migration release gate](release-gate.md), not for API startup migrations.
 
+## Worker Image
+
+The event ingestion worker has a separate Dockerfile, [Dockerfile.worker](../Dockerfile.worker), and build script:
+
+```bash
+node scripts/worker-container-build.mjs
+```
+
+The worker image runs `MaintenancePlanning.Worker.dll`, polls the configured SQS work queue, processes EventBridge-delivered synthetic maintenance events through the same import contract as the API and deletes only messages that were processed or safely audited as invalid. Runtime queue URLs and database passwords are task-definition configuration and Secrets Manager values, not image build inputs.
+
 ## Secrets And Build Inputs
 
 The current image build does not require registry, package-feed or cloud secrets. If private feeds are introduced later, use BuildKit secret or SSH mounts. Do not pass build secrets through Dockerfile arguments or environment variables.

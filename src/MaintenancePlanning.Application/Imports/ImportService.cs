@@ -739,7 +739,8 @@ public sealed class ImportService(IImportStore store) : IImportService
             ignoredDuplicateCount,
             ignoredStaleCount,
             importedAtUtc,
-            importedAtUtc);
+            importedAtUtc,
+            FailureCode: null);
     }
 
     private static WorkOrderImportRecord ToWorkOrderRecord(

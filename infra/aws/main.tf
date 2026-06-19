@@ -104,6 +104,8 @@ module "app" {
   database_address        = module.database.address
   database_port           = module.database.port
   database_name           = var.database_name
+  work_queue_url          = module.messaging.work_queue_url
+  work_dlq_url            = module.messaging.work_dlq_url
   api_database_username   = var.api_database_username
   api_desired_count       = var.api_desired_count
   web_desired_count       = var.web_desired_count
@@ -136,17 +138,20 @@ module "worker" {
   scheduler_role_arn             = module.identity.scheduler_role_arn
   log_group_names                = module.observability.log_group_names
   migration_database_secret_arn  = module.secrets.migration_database_password_secret_arn
+  worker_database_secret_arn     = module.secrets.worker_database_password_secret_arn
   simulator_api_token_secret_arn = module.secrets.simulator_api_token_secret_arn
   database_address               = module.database.address
   database_port                  = module.database.port
   database_name                  = var.database_name
   migration_database_username    = var.migration_database_username
+  worker_database_username       = var.worker_database_username
   enable_worker_service          = var.enable_worker_service
   enable_simulator_schedule      = var.enable_simulator_schedule
   simulator_schedule_expression  = var.simulator_schedule_expression
   simulator_api_url              = var.simulator_api_url
   event_bus_name                 = module.messaging.event_bus_name
   work_queue_url                 = module.messaging.work_queue_url
+  work_dlq_url                   = module.messaging.work_dlq_url
 
   depends_on = [module.app]
 }

@@ -18,4 +18,6 @@ web_data_mode        = "mock"
 web_backend_api_url  = null
 simulator_api_url    = null
 
+worker_database_username = "maintenance_worker"
+
 budget_alert_emails = ["replace-with-review-alert-email@example.com"]

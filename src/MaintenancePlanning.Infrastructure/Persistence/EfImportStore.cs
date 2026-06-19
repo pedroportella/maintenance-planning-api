@@ -37,6 +37,7 @@ internal sealed class EfImportStore(MaintenancePlanningDbContext dbContext) : II
             import.RejectedCount,
             import.IgnoredDuplicateCount,
             import.IgnoredStaleCount,
+            import.FailureCode,
             import.ReceivedAtUtc,
             import.CompletedAtUtc,
             import.Events
@@ -74,6 +75,35 @@ internal sealed class EfImportStore(MaintenancePlanningDbContext dbContext) : II
                 import.RejectedCount,
                 import.IgnoredDuplicateCount,
                 import.IgnoredStaleCount,
+                import.FailureCode,
+                import.ReceivedAtUtc,
+                import.CompletedAtUtc,
+                Array.Empty<ImportEventResult>());
+    }
+
+    public async Task<StoredImport?> FindLatestFailedImportAsync(CancellationToken cancellationToken)
+    {
+        var import = await dbContext.IntegrationImports
+            .AsNoTracking()
+            .Where(item => item.Status == IntegrationImportStatus.Failed)
+            .OrderByDescending(item => item.ReceivedAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return import is null
+            ? null
+            : new StoredImport(
+                import.Id,
+                import.SourceSystem,
+                import.ImportKind,
+                import.IdempotencyKey,
+                import.RequestHash,
+                import.Status.ToString(),
+                import.ReceivedCount,
+                import.AcceptedCount,
+                import.RejectedCount,
+                import.IgnoredDuplicateCount,
+                import.IgnoredStaleCount,
+                import.FailureCode,
                 import.ReceivedAtUtc,
                 import.CompletedAtUtc,
                 Array.Empty<ImportEventResult>());
@@ -249,7 +279,7 @@ internal sealed class EfImportStore(MaintenancePlanningDbContext dbContext) : II
             RejectedCount = record.RejectedCount,
             IgnoredDuplicateCount = record.IgnoredDuplicateCount,
             IgnoredStaleCount = record.IgnoredStaleCount,
-            FailureCode = null,
+            FailureCode = record.FailureCode,
             ReceivedAtUtc = record.ReceivedAtUtc,
             CompletedAtUtc = record.CompletedAtUtc
         };

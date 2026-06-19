@@ -1,7 +1,11 @@
+using Amazon;
+using Amazon.SQS;
+using MaintenancePlanning.Application.Eventing;
 using MaintenancePlanning.Application.Persistence;
 using MaintenancePlanning.Application.Planning;
 using MaintenancePlanning.Application.Readiness;
 using MaintenancePlanning.Application.Imports;
+using MaintenancePlanning.Infrastructure.Eventing;
 using MaintenancePlanning.Infrastructure.Persistence;
 using MaintenancePlanning.Infrastructure.Readiness;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +27,8 @@ public static class DependencyInjection
 
         services.Configure<MaintenancePlanningDatabaseOptions>(
             configuration.GetSection(MaintenancePlanningDatabaseOptions.SectionName));
+        var eventingOptions = MaintenancePlanningEventingOptions.Create(configuration);
+        services.AddSingleton(eventingOptions);
 
         if (MaintenancePlanningConnectionStringFactory.IsConfigured(configuration, databaseOptions))
         {
@@ -53,6 +59,25 @@ public static class DependencyInjection
             services.TryAddSingleton<IReadinessProbe, NoExternalDependencyReadinessProbe>();
         }
 
+        if (eventingOptions.IsConfigured)
+        {
+            services.AddSingleton<IAmazonSQS>(_ => CreateSqsClient(eventingOptions));
+            services.TryAddSingleton<IEventQueueClient, SqsEventQueueClient>();
+            services.TryAddSingleton<IEventingPostureReporter, SqsEventingPostureReporter>();
+        }
+        else
+        {
+            services.TryAddSingleton<IEventQueueClient, UnavailableEventQueueClient>();
+            services.TryAddSingleton<IEventingPostureReporter, UnavailableEventingPostureReporter>();
+        }
+
         return services;
+    }
+
+    private static IAmazonSQS CreateSqsClient(MaintenancePlanningEventingOptions options)
+    {
+        return string.IsNullOrWhiteSpace(options.Region)
+            ? new AmazonSQSClient()
+            : new AmazonSQSClient(RegionEndpoint.GetBySystemName(options.Region));
     }
 }

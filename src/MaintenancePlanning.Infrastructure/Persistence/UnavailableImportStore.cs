@@ -15,6 +15,9 @@ internal sealed class UnavailableImportStore : IImportStore
     public Task<StoredImport?> FindLatestImportAsync(CancellationToken cancellationToken) =>
         Task.FromResult<StoredImport?>(null);
 
+    public Task<StoredImport?> FindLatestFailedImportAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<StoredImport?>(null);
+
     public Task<bool> HasEventIdempotencyKeyAsync(
         string sourceSystem,
         string idempotencyKey,

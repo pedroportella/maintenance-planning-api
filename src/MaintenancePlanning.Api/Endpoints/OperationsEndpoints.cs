@@ -1,4 +1,5 @@
 using MaintenancePlanning.Api.Security;
+using MaintenancePlanning.Application.Eventing;
 using MaintenancePlanning.Application.Imports;
 using MaintenancePlanning.Application.Operations;
 using MaintenancePlanning.Application.Persistence;
@@ -45,11 +46,16 @@ public static class OperationsEndpoints
 
     private static async Task<IResult> GetPostureAsync(
         IImportStore importStore,
+        IEventingPostureReporter eventingPostureReporter,
         CancellationToken cancellationToken)
     {
         var latestImport = importStore.IsConfigured
             ? await importStore.FindLatestImportAsync(cancellationToken)
             : null;
+        var latestFailedImport = importStore.IsConfigured
+            ? await importStore.FindLatestFailedImportAsync(cancellationToken)
+            : null;
+        var eventingPosture = await eventingPostureReporter.CheckAsync(cancellationToken);
 
         return Results.Ok(new OperationsPostureReport(
             DatabaseConfigured: importStore.IsConfigured,
@@ -69,11 +75,10 @@ public static class OperationsEndpoints
                     latestImport.IgnoredStaleCount,
                     latestImport.ReceivedAtUtc,
                     latestImport.CompletedAtUtc),
-            Eventing: new IntegrationEventingPosture(
-                PublishMode: "not-configured",
-                QueueDepth: 0,
-                DeadLetterCount: 0,
-                LastFailureCode: null),
+            Eventing: eventingPosture with
+            {
+                LastFailureCode = latestFailedImport?.FailureCode ?? eventingPosture.LastFailureCode
+            },
             CheckedAtUtc: DateTimeOffset.UtcNow));
     }
 }

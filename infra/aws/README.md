@@ -10,7 +10,7 @@ This Terraform stack defines review infrastructure for the synthetic maintenance
 - `modules/edge` creates the application load balancer, target groups and optional HTTPS/WAF wiring.
 - `modules/database` creates private SQL Server infrastructure with managed master password.
 - `modules/secrets` creates secret placeholders without committing values.
-- `modules/messaging` creates the event bus, work queue and dead-letter queue for later event ingestion.
+- `modules/messaging` creates the event bus, EventBridge rule, work queue and dead-letter queue for event ingestion.
 - `modules/observability` creates workload log groups.
 - `modules/identity` creates ECS execution and task roles.
 - `modules/app` creates the ECS cluster, API service and optional web service.
@@ -41,6 +41,8 @@ Do not commit the edited backend config.
 Copy `terraform.tfvars.example` to a local variable file and replace placeholder image digests with values pushed to the review ECR repositories. Keep secret values in Secrets Manager, not in Terraform variables.
 
 Use `web_data_mode = "backend"` only when the server-side web-to-API route is ready and `web_backend_api_url` is set to an internal or review URL. Keep the API URL server-only.
+
+Populate API, worker and migration database password secrets before enabling database-backed tasks. The worker service should stay disabled until queue, database and image inputs are ready for a reviewed run.
 
 ## Migration Boundary
 

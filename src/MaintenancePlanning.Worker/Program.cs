@@ -1,5 +1,7 @@
 using MaintenancePlanning.Infrastructure;
 using MaintenancePlanning.Worker;
+using MaintenancePlanning.Application.Eventing;
+using MaintenancePlanning.Application.Imports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -19,6 +21,8 @@ builder.Services.Configure<HostOptions>(options =>
 });
 
 builder.Services.AddInfrastructureServices(builder.Configuration);
-builder.Services.AddHostedService<PlanningWorker>();
+builder.Services.AddScoped<IImportService, ImportService>();
+builder.Services.AddScoped<IEventIngestionService, EventIngestionService>();
+builder.Services.AddHostedService<EventIngestionWorker>();
 
 await builder.Build().RunAsync();

@@ -31,7 +31,7 @@ This is a prototype for review and learning. It does not connect to any employer
 
 ## Current State
 
-The repository now contains the initial .NET API, worker and test solution skeleton, a containerised API runtime path, SQL Server persistence through EF Core migrations, local HTTP import contracts for synthetic source-system-shaped work orders and maintenance events, planner work-order query routes, planning-run recommendation routes, Terraform review-infrastructure foundations and an ECS migration release-gate script. Implemented foundation capabilities include startup, liveness and readiness health endpoints, OpenAPI JSON, local bearer-token auth policies, command rate limiting, migration readiness reporting, idempotent import audit fields, deterministic package recommendations, planner decision audit rows, correlation ids, safe problem-details errors, structured console logging, graceful shutdown state, explicit local migrations, a restricted container smoke, Terraform validation and dry-run release-gate checks.
+The repository now contains the initial .NET API, event ingestion worker and test solution, containerised API and worker runtime paths, SQL Server persistence through EF Core migrations, local HTTP import contracts for synthetic source-system-shaped work orders and maintenance events, planner work-order query routes, planning-run recommendation routes, Terraform review-infrastructure foundations and an ECS migration release-gate script. Implemented foundation capabilities include startup, liveness and readiness health endpoints, OpenAPI JSON, local bearer-token auth policies, command rate limiting, migration readiness reporting, idempotent import and queued-event audit fields, deterministic package recommendations, planner decision audit rows, EventBridge-to-SQS review wiring, queue and dead-letter posture reporting, correlation ids, safe problem-details errors, structured console logging, graceful shutdown state, explicit local migrations, restricted container smoke, Terraform validation and dry-run release-gate checks.
 
 ## Run Locally
 
@@ -84,5 +84,6 @@ node scripts/reviewer-evidence-smoke.mjs
 node scripts/ecs-release-gate-tests.mjs
 npm run deploy:release-gate:dry-run
 node scripts/container-smoke.mjs
+node scripts/worker-container-build.mjs
 node scripts/database-smoke.mjs
 ```

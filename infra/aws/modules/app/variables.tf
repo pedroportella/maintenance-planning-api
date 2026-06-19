@@ -70,6 +70,14 @@ variable "database_name" {
   type = string
 }
 
+variable "work_queue_url" {
+  type = string
+}
+
+variable "work_dlq_url" {
+  type = string
+}
+
 variable "api_database_username" {
   type = string
 }

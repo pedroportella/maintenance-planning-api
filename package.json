@@ -19,7 +19,8 @@
     "migration:container:build": "node scripts/migration-container-build.mjs",
     "release:gate:test": "node scripts/ecs-release-gate-tests.mjs",
     "test:reviewer-evidence": "node scripts/reviewer-evidence-smoke.mjs",
-    "verify": "node scripts/quality-guards.mjs all && node scripts/reviewer-evidence-smoke.mjs && node scripts/ecs-release-gate-tests.mjs"
+    "verify": "node scripts/quality-guards.mjs all && node scripts/reviewer-evidence-smoke.mjs && node scripts/ecs-release-gate-tests.mjs",
+    "worker:container:build": "node scripts/worker-container-build.mjs"
   },
   "engines": {
     "node": ">=22 <23"

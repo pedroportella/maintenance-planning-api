@@ -49,6 +49,26 @@ output "migration_task_definition_arn" {
   value       = module.worker.migration_task_definition_arn
 }
 
+output "worker_task_definition_arn" {
+  description = "Worker task definition ARN for optional event ingestion service runs."
+  value       = module.worker.worker_task_definition_arn
+}
+
+output "event_bus_name" {
+  description = "Event bus name for simulator event publishing."
+  value       = module.messaging.event_bus_name
+}
+
+output "work_queue_url" {
+  description = "SQS work queue URL used by the event ingestion worker."
+  value       = module.messaging.work_queue_url
+}
+
+output "work_dlq_url" {
+  description = "SQS dead-letter queue URL used for eventing posture."
+  value       = module.messaging.work_dlq_url
+}
+
 output "migration_security_group_id" {
   description = "Security group id used by release-orchestrated migration tasks."
   value       = module.network.security_group_ids.migration

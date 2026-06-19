@@ -12,8 +12,8 @@ Implemented local review controls:
 - command route rate limiting;
 - idempotency for non-idempotent commands;
 - planner work-order querying with allow-listed filters and sorts;
-- operations posture with source freshness and synthetic eventing counters;
-- non-root API container runtime, restricted container smoke and explicit image identity.
+- operations posture with source freshness, event queue depth, dead-letter count and latest event-ingestion failure code;
+- non-root API and worker container runtimes, restricted API container smoke and explicit image identity.
 
 Local synthetic tokens:
 
@@ -26,7 +26,6 @@ Production-next controls:
 
 - replace local test tokens with issuer and audience validated JWT/OIDC configuration;
 - add object-level access checks once tenant or site ownership exists in the model;
-- feed queue depth and dead-letter counts from deployed eventing infrastructure;
-- add replay controls and outbound event posture after event ingestion exists.
+- add replay controls and outbound event posture after the inbound event path has deployed smoke evidence.
 
 Do not expose secrets, connection strings, stack traces or raw infrastructure details in public responses or docs.

@@ -17,3 +17,11 @@ output "work_queue_url" {
 output "work_dlq_arn" {
   value = aws_sqs_queue.dlq.arn
 }
+
+output "work_dlq_url" {
+  value = aws_sqs_queue.dlq.url
+}
+
+output "event_rule_arn" {
+  value = aws_cloudwatch_event_rule.maintenance_events.arn
+}

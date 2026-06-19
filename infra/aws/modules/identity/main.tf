@@ -80,6 +80,23 @@ resource "aws_iam_role" "simulator_task" {
   assume_role_policy = data.aws_iam_policy_document.ecs_tasks_assume_role.json
 }
 
+data "aws_iam_policy_document" "api_eventing_read" {
+  statement {
+    actions   = ["sqs:GetQueueAttributes"]
+    resources = [var.work_queue_arn, var.work_dlq_arn]
+  }
+}
+
+resource "aws_iam_policy" "api_eventing_read" {
+  name   = "${var.name_prefix}-api-eventing-read"
+  policy = data.aws_iam_policy_document.api_eventing_read.json
+}
+
+resource "aws_iam_role_policy_attachment" "api_eventing_read" {
+  role       = aws_iam_role.api_task.name
+  policy_arn = aws_iam_policy.api_eventing_read.arn
+}
+
 data "aws_iam_policy_document" "worker_messages" {
   statement {
     actions = [

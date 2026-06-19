@@ -4,6 +4,7 @@ using MaintenancePlanning.Api.Health;
 using MaintenancePlanning.Api.Hosting;
 using MaintenancePlanning.Api.Middleware;
 using MaintenancePlanning.Api.Security;
+using MaintenancePlanning.Application.Eventing;
 using MaintenancePlanning.Application.Imports;
 using MaintenancePlanning.Application.Planning;
 using MaintenancePlanning.Infrastructure;
@@ -61,6 +62,7 @@ public static class ApiApplication
         builder.Services.AddSingleton<ApplicationLifecycleState>();
 
         builder.Services.AddScoped<IImportService, ImportService>();
+        builder.Services.AddScoped<IEventIngestionService, EventIngestionService>();
         builder.Services.AddScoped<IPlanningService, PlanningService>();
         builder.Services.AddInfrastructureServices(builder.Configuration);
         builder.Services

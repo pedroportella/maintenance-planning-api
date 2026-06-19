@@ -11,6 +11,8 @@ public interface IImportStore
 
     Task<StoredImport?> FindLatestImportAsync(CancellationToken cancellationToken);
 
+    Task<StoredImport?> FindLatestFailedImportAsync(CancellationToken cancellationToken);
+
     Task<bool> HasEventIdempotencyKeyAsync(
         string sourceSystem,
         string idempotencyKey,
@@ -42,6 +44,7 @@ public sealed record StoredImport(
     int RejectedCount,
     int IgnoredDuplicateCount,
     int IgnoredStaleCount,
+    string? FailureCode,
     DateTimeOffset ReceivedAtUtc,
     DateTimeOffset? CompletedAtUtc,
     IReadOnlyList<ImportEventResult> Events);
@@ -70,7 +73,8 @@ public sealed record ImportAuditRecord(
     int IgnoredDuplicateCount,
     int IgnoredStaleCount,
     DateTimeOffset ReceivedAtUtc,
-    DateTimeOffset? CompletedAtUtc);
+    DateTimeOffset? CompletedAtUtc,
+    string? FailureCode);
 
 public sealed record IntegrationEventAuditRecord(
     Guid Id,

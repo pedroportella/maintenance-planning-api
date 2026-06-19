@@ -438,6 +438,14 @@ public sealed class ImportEndpointTests
             return Task.FromResult(_imports.OrderByDescending(item => item.ReceivedAtUtc).FirstOrDefault());
         }
 
+        public Task<StoredImport?> FindLatestFailedImportAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult(_imports
+                .Where(item => item.Status == "Failed")
+                .OrderByDescending(item => item.ReceivedAtUtc)
+                .FirstOrDefault());
+        }
+
         public Task<bool> HasEventIdempotencyKeyAsync(
             string sourceSystem,
             string idempotencyKey,
@@ -487,6 +495,7 @@ public sealed class ImportEndpointTests
                 batch.Import.RejectedCount,
                 batch.Import.IgnoredDuplicateCount,
                 batch.Import.IgnoredStaleCount,
+                batch.Import.FailureCode,
                 batch.Import.ReceivedAtUtc,
                 batch.Import.CompletedAtUtc,
                 batch.Events.Select(item => new ImportEventResult(

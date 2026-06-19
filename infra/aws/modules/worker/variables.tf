@@ -74,6 +74,10 @@ variable "migration_database_secret_arn" {
   type = string
 }
 
+variable "worker_database_secret_arn" {
+  type = string
+}
+
 variable "simulator_api_token_secret_arn" {
   type = string
 }
@@ -91,6 +95,10 @@ variable "database_name" {
 }
 
 variable "migration_database_username" {
+  type = string
+}
+
+variable "worker_database_username" {
   type = string
 }
 
@@ -115,5 +123,9 @@ variable "event_bus_name" {
 }
 
 variable "work_queue_url" {
+  type = string
+}
+
+variable "work_dlq_url" {
   type = string
 }

@@ -299,6 +299,12 @@ variable "migration_database_username" {
   default     = "maintenance_migrator"
 }
 
+variable "worker_database_username" {
+  description = "Database username used by the event ingestion worker task."
+  type        = string
+  default     = "maintenance_worker"
+}
+
 variable "database_backup_retention_days" {
   description = "Review database backup retention in days."
   type        = number

@@ -21,7 +21,7 @@ Errors should use `application/problem+json` with a correlation identifier.
 
 `GET /api/v1/operations/migration-readiness` reports whether SQL Server is configured, reachable and up to date with EF Core migrations. It does not apply migrations.
 
-`GET /api/v1/operations/posture` reports whether import persistence is configured and, when available, the latest import freshness summary. It also includes a synthetic eventing posture placeholder for queue and dead-letter counts until the eventing stage is implemented.
+`GET /api/v1/operations/posture` reports whether import persistence is configured and, when available, the latest import freshness summary. When eventing is configured, it also reports approximate work-queue and dead-letter counts plus the latest queued-event ingestion failure code recorded in import audit.
 
 ## Authentication
 

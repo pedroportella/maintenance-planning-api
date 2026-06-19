@@ -34,6 +34,22 @@ locals {
     {
       name  = "MaintenancePlanning__Database__TrustServerCertificate"
       value = "false"
+    },
+    {
+      name  = "MaintenancePlanning__Eventing__Enabled"
+      value = "true"
+    },
+    {
+      name  = "MaintenancePlanning__Eventing__QueueUrl"
+      value = var.work_queue_url
+    },
+    {
+      name  = "MaintenancePlanning__Eventing__DeadLetterQueueUrl"
+      value = var.work_dlq_url
+    },
+    {
+      name  = "MaintenancePlanning__Eventing__Region"
+      value = var.aws_region
     }
   ]
 

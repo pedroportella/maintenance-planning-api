@@ -46,6 +46,46 @@ locals {
     {
       name  = "MAINTENANCE_PLANNING_EVENT_BUS_NAME"
       value = var.event_bus_name
+    },
+    {
+      name  = "MaintenancePlanning__Database__Enabled"
+      value = "true"
+    },
+    {
+      name  = "MaintenancePlanning__Database__Server"
+      value = "${var.database_address},${var.database_port}"
+    },
+    {
+      name  = "MaintenancePlanning__Database__Database"
+      value = var.database_name
+    },
+    {
+      name  = "MaintenancePlanning__Database__User"
+      value = var.worker_database_username
+    },
+    {
+      name  = "MaintenancePlanning__Database__Encrypt"
+      value = "true"
+    },
+    {
+      name  = "MaintenancePlanning__Database__TrustServerCertificate"
+      value = "false"
+    },
+    {
+      name  = "MaintenancePlanning__Eventing__Enabled"
+      value = "true"
+    },
+    {
+      name  = "MaintenancePlanning__Eventing__QueueUrl"
+      value = var.work_queue_url
+    },
+    {
+      name  = "MaintenancePlanning__Eventing__DeadLetterQueueUrl"
+      value = var.work_dlq_url
+    },
+    {
+      name  = "MaintenancePlanning__Eventing__Region"
+      value = var.aws_region
     }
   ]
 
@@ -104,6 +144,12 @@ resource "aws_ecs_task_definition" "worker" {
         }
       ]
       environment = local.worker_environment
+      secrets = [
+        {
+          name      = "MaintenancePlanning__Database__Password"
+          valueFrom = var.worker_database_secret_arn
+        }
+      ]
       logConfiguration = {
         logDriver = "awslogs"
         options = {

@@ -1,6 +1,6 @@
 # Reviewer Runbook
 
-Current state: .NET API and worker skeleton with health endpoints, OpenAPI JSON, safe errors, tests, SQL Server persistence through EF Core migrations, local HTTP import contracts for synthetic source-system-shaped events, planner work-order query routes, local review auth policies, command rate limiting and a containerised API runtime path.
+Current state: .NET API and event ingestion worker with health endpoints, OpenAPI JSON, safe errors, tests, SQL Server persistence through EF Core migrations, local HTTP import contracts for synthetic source-system-shaped events, planner work-order query routes, local review auth policies, command rate limiting, EventBridge/SQS review wiring and containerised API, worker and migration-runner runtime paths.
 
 ## Local Checks
 
@@ -13,6 +13,7 @@ node scripts/terraform-validate.mjs
 node scripts/ecs-release-gate-tests.mjs
 npm run deploy:release-gate:dry-run
 node scripts/container-smoke.mjs
+node scripts/worker-container-build.mjs
 node scripts/database-smoke.mjs
 ```
 
@@ -33,6 +34,12 @@ node scripts/container-smoke.mjs --skip-build
 
 The smoke checks startup, liveness, readiness, final image contents and graceful container stop behaviour.
 
+The worker image can be built locally without AWS credentials:
+
+```bash
+node scripts/worker-container-build.mjs
+```
+
 ## Terraform Review
 
 ```bash
@@ -46,7 +53,7 @@ terraform -chdir=infra/aws init -backend-config=backend.hcl
 terraform -chdir=infra/aws plan -var-file=review.auto.tfvars
 ```
 
-Terraform defines infrastructure and task definitions only. It does not execute database migrations. The migration task should be run by release orchestration after the migration-runner image exists.
+Terraform defines infrastructure and task definitions only. It does not execute database migrations. The migration task should be run by release orchestration after the migration-runner image exists. EventBridge, SQS, the dead-letter queue and the worker service definition are provisioned for review, but a live synthetic event publish has not been run from this repository state.
 
 ## Migration Release Gate
 
