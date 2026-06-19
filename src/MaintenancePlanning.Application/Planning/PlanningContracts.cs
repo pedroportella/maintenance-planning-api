@@ -24,6 +24,29 @@ public sealed class RecordPackageDecisionRequest
     public IReadOnlyList<Guid> WorkOrderIds { get; init; } = Array.Empty<Guid>();
 }
 
+public sealed class WorkOrderQueryRequest
+{
+    public string? Cursor { get; init; }
+
+    public int? PageSize { get; init; }
+
+    public bool? Backlog { get; init; }
+
+    public string? Priority { get; init; }
+
+    public string? FunctionalLocation { get; init; }
+
+    public string? Readiness { get; init; }
+
+    public string? Status { get; init; }
+
+    public DateTimeOffset? UpdatedSinceUtc { get; init; }
+
+    public DateTimeOffset? UpdatedBeforeUtc { get; init; }
+
+    public string? Sort { get; init; }
+}
+
 public sealed record PlanningRunResult(
     Guid Id,
     string RunNumber,
@@ -94,6 +117,73 @@ public sealed record RecommendationWorkOrderResult(
     string? AssetName,
     string? FunctionalLocationCode,
     string? FunctionalLocationName);
+
+public sealed record WorkOrderQueryResult(
+    IReadOnlyList<WorkOrderSummaryResult> Items,
+    string? NextCursor,
+    int PageSize,
+    string Sort,
+    WorkOrderQueryFilters AppliedFilters,
+    DateTimeOffset QueriedAtUtc);
+
+public sealed record WorkOrderQueryFilters(
+    bool Backlog,
+    string? Priority,
+    string? FunctionalLocation,
+    string? Readiness,
+    string? Status,
+    DateTimeOffset? UpdatedSinceUtc,
+    DateTimeOffset? UpdatedBeforeUtc);
+
+public sealed record WorkOrderSummaryResult(
+    Guid Id,
+    string SourceSystem,
+    string SourceId,
+    string WorkOrderNumber,
+    string Title,
+    string WorkType,
+    string Priority,
+    string Status,
+    string Readiness,
+    SourceDataIssueSummary? SourceDataIssue,
+    DateTimeOffset? RequiredStartUtc,
+    DateTimeOffset? DueAtUtc,
+    DateTimeOffset? ScheduledStartUtc,
+    decimal? EstimatedHours,
+    DateTimeOffset SourceUpdatedAtUtc,
+    DateTimeOffset ImportedAtUtc,
+    string? AssetNumber,
+    string? AssetName,
+    string? AssetCriticality,
+    string? FunctionalLocationCode,
+    string? FunctionalLocationName);
+
+public sealed record WorkOrderDetailResult(
+    Guid Id,
+    string SourceSystem,
+    string SourceId,
+    string WorkOrderNumber,
+    string Title,
+    string WorkType,
+    string Priority,
+    string Status,
+    string Readiness,
+    SourceDataIssueSummary? SourceDataIssue,
+    DateTimeOffset? RequiredStartUtc,
+    DateTimeOffset? DueAtUtc,
+    DateTimeOffset? ScheduledStartUtc,
+    decimal? EstimatedHours,
+    DateTimeOffset SourceUpdatedAtUtc,
+    DateTimeOffset ImportedAtUtc,
+    string? AssetNumber,
+    string? AssetName,
+    string? AssetCriticality,
+    string? FunctionalLocationCode,
+    string? FunctionalLocationName);
+
+public sealed record SourceDataIssueSummary(
+    string Code,
+    string Detail);
 
 public sealed record PlannerDecisionResult(
     Guid Id,

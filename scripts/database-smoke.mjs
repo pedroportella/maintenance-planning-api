@@ -9,6 +9,7 @@ const sqlPassword = localEnv.MSSQL_SA_PASSWORD ?? "LocalOnly_Passw0rd_123!";
 const sqlPort = localEnv.MSSQL_HOST_PORT ?? String(await findFreePort());
 const apiPort = localEnv.API_HOST_PORT ?? String(await findFreePort());
 const composeProjectName = localEnv.COMPOSE_PROJECT_NAME ?? `maintenance-planning-api-smoke-${Date.now()}`;
+const reviewerToken = "local-reviewer-token";
 
 const databaseEnvironment = {
   ...localEnv,
@@ -84,7 +85,8 @@ try {
 
   const migrationReadiness = await waitForJson(
     `http://127.0.0.1:${apiPort}/api/v1/operations/migration-readiness`,
-    "migration readiness"
+    "migration readiness",
+    { Authorization: `Bearer ${reviewerToken}` }
   );
 
   if (!migrationReadiness.databaseReachable || migrationReadiness.pendingMigrationCount !== 0) {
@@ -167,13 +169,13 @@ async function waitForHttpOk(url, label) {
   throw new Error(`${label} did not pass: ${lastError?.message ?? "timed out"}`);
 }
 
-async function waitForJson(url, label) {
+async function waitForJson(url, label, headers = {}) {
   const deadline = Date.now() + 30_000;
   let lastError;
 
   while (Date.now() < deadline) {
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { headers });
       const body = await response.text();
       if (response.ok) {
         console.log(`${label} passed.`);

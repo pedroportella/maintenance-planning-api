@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using MaintenancePlanning.Domain.Planning;
 
 namespace MaintenancePlanning.Application.Planning;
@@ -10,10 +11,25 @@ public sealed class PlanningService(IPlanningStore store) : IPlanningService
     private const int StatusServiceUnavailable = 503;
     private const int DefaultHorizonDays = 14;
     private const int MaximumHorizonDays = 90;
+    private const int DefaultWorkOrderPageSize = 25;
+    private const int MaximumWorkOrderPageSize = 100;
 
     private static readonly PlanningRecommendationEngine Engine = new();
     private static readonly HashSet<string> DecisionTypes =
         Enum.GetNames<PlannerDecisionType>().ToHashSet(StringComparer.Ordinal);
+    private static readonly HashSet<string> WorkOrderSorts = new(StringComparer.Ordinal)
+    {
+        "dueAtUtc",
+        "-dueAtUtc",
+        "priority",
+        "-priority",
+        "requiredStartUtc",
+        "-requiredStartUtc",
+        "updatedAtUtc",
+        "-updatedAtUtc",
+        "workOrderNumber",
+        "-workOrderNumber"
+    };
 
     public async Task<PlanningProcessingOutcome<PlanningRunResult>> CreatePlanningRunAsync(
         CreatePlanningRunRequest request,
@@ -109,6 +125,48 @@ public sealed class PlanningService(IPlanningStore store) : IPlanningService
             : PlanningProcessingOutcome<PlanningRecommendationsResult>.Success(ToRecommendationsResult(run));
     }
 
+    public async Task<PlanningProcessingOutcome<WorkOrderQueryResult>> QueryWorkOrdersAsync(
+        WorkOrderQueryRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!store.IsConfigured)
+        {
+            return PlanningProcessingOutcome<WorkOrderQueryResult>.Failed(StoreUnavailable());
+        }
+
+        var normalized = NormalizeWorkOrderQuery(request);
+        if (normalized.Problem is not null || normalized.Spec is null)
+        {
+            return PlanningProcessingOutcome<WorkOrderQueryResult>.Failed(normalized.Problem ?? ValidationFailed(new()));
+        }
+
+        var page = await store.QueryWorkOrdersAsync(normalized.Spec, cancellationToken);
+
+        return PlanningProcessingOutcome<WorkOrderQueryResult>.Success(new WorkOrderQueryResult(
+            page.Items.Select(ToWorkOrderSummaryResult).ToArray(),
+            page.NextOffset is null ? null : EncodeCursor(page.NextOffset.Value),
+            normalized.Spec.PageSize,
+            normalized.Sort,
+            normalized.AppliedFilters,
+            DateTimeOffset.UtcNow));
+    }
+
+    public async Task<PlanningProcessingOutcome<WorkOrderDetailResult>> GetWorkOrderAsync(
+        Guid workOrderId,
+        CancellationToken cancellationToken)
+    {
+        if (!store.IsConfigured)
+        {
+            return PlanningProcessingOutcome<WorkOrderDetailResult>.Failed(StoreUnavailable());
+        }
+
+        var workOrder = await store.FindWorkOrderAsync(workOrderId, cancellationToken);
+
+        return workOrder is null
+            ? PlanningProcessingOutcome<WorkOrderDetailResult>.Failed(NotFound("Work order was not found.", "work-order-not-found"))
+            : PlanningProcessingOutcome<WorkOrderDetailResult>.Success(ToWorkOrderDetailResult(workOrder));
+    }
+
     public async Task<PlanningProcessingOutcome<PackageDecisionResult>> RecordPackageDecisionAsync(
         Guid packageId,
         RecordPackageDecisionRequest request,
@@ -201,6 +259,76 @@ public sealed class PlanningService(IPlanningStore store) : IPlanningService
         return errors;
     }
 
+    private static NormalizedWorkOrderQueryRequest NormalizeWorkOrderQuery(WorkOrderQueryRequest request)
+    {
+        var errors = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        var pageSize = request.PageSize ?? DefaultWorkOrderPageSize;
+        if (pageSize < 1 || pageSize > MaximumWorkOrderPageSize)
+        {
+            AddError(
+                errors,
+                "pageSize",
+                $"Must be between 1 and {MaximumWorkOrderPageSize.ToString(CultureInfo.InvariantCulture)}.");
+        }
+
+        var offset = 0;
+        if (!string.IsNullOrWhiteSpace(request.Cursor) && !TryDecodeCursor(request.Cursor.Trim(), out offset))
+        {
+            AddError(errors, "cursor", "Contains an unsupported cursor value.");
+        }
+
+        var sort = string.IsNullOrWhiteSpace(request.Sort) ? "dueAtUtc" : request.Sort.Trim();
+        if (!WorkOrderSorts.Contains(sort))
+        {
+            AddError(errors, "sort", "Contains an unsupported sort value.");
+        }
+
+        var readiness = ParseOptionalEnum<SourceDataReadiness>(errors, "readiness", request.Readiness);
+        var status = ParseOptionalEnum<WorkOrderLifecycleStatus>(errors, "status", request.Status);
+        var priority = CleanOptional(request.Priority);
+        var functionalLocation = CleanOptional(request.FunctionalLocation);
+        OptionalString(errors, "priority", priority, 40);
+        OptionalString(errors, "functionalLocation", functionalLocation, 120);
+
+        if (request.UpdatedSinceUtc is not null
+            && request.UpdatedBeforeUtc is not null
+            && request.UpdatedBeforeUtc <= request.UpdatedSinceUtc)
+        {
+            AddError(errors, "updatedBeforeUtc", "Must be later than updatedSinceUtc.");
+        }
+
+        var appliedFilters = new WorkOrderQueryFilters(
+            Backlog: request.Backlog ?? true,
+            Priority: priority,
+            FunctionalLocation: functionalLocation,
+            Readiness: readiness?.ToString(),
+            Status: status?.ToString(),
+            UpdatedSinceUtc: request.UpdatedSinceUtc,
+            UpdatedBeforeUtc: request.UpdatedBeforeUtc);
+
+        if (errors.Count > 0)
+        {
+            return new NormalizedWorkOrderQueryRequest(null, sort, appliedFilters, ValidationFailed(errors));
+        }
+
+        var sortDescending = sort.StartsWith("-", StringComparison.Ordinal);
+        var sortField = sortDescending ? sort[1..] : sort;
+        var spec = new WorkOrderQuerySpec(
+            offset,
+            pageSize,
+            appliedFilters.Backlog,
+            priority,
+            functionalLocation,
+            readiness,
+            status,
+            request.UpdatedSinceUtc,
+            request.UpdatedBeforeUtc,
+            sortField,
+            sortDescending);
+
+        return new NormalizedWorkOrderQueryRequest(spec, sort, appliedFilters, null);
+    }
+
     private static PlanningRunResult ToRunResult(PlanningRun run, IReadOnlyList<PlanningPackageDraft> drafts)
     {
         return new PlanningRunResult(
@@ -277,6 +405,58 @@ public sealed class PlanningService(IPlanningStore store) : IPlanningService
                 .ToArray());
     }
 
+    private static WorkOrderSummaryResult ToWorkOrderSummaryResult(PlanningWorkOrderSnapshot workOrder)
+    {
+        return new WorkOrderSummaryResult(
+            workOrder.Id,
+            workOrder.SourceSystem,
+            workOrder.SourceId,
+            workOrder.WorkOrderNumber,
+            workOrder.Title,
+            workOrder.WorkType,
+            workOrder.Priority,
+            workOrder.Status.ToString(),
+            workOrder.Readiness.ToString(),
+            ToIssueSummary(workOrder),
+            workOrder.RequiredStartUtc,
+            workOrder.DueAtUtc,
+            workOrder.ScheduledStartUtc,
+            workOrder.EstimatedHours,
+            workOrder.SourceUpdatedAtUtc,
+            workOrder.ImportedAtUtc,
+            workOrder.AssetNumber,
+            workOrder.AssetName,
+            workOrder.AssetCriticality,
+            workOrder.FunctionalLocationCode,
+            workOrder.FunctionalLocationName);
+    }
+
+    private static WorkOrderDetailResult ToWorkOrderDetailResult(PlanningWorkOrderSnapshot workOrder)
+    {
+        return new WorkOrderDetailResult(
+            workOrder.Id,
+            workOrder.SourceSystem,
+            workOrder.SourceId,
+            workOrder.WorkOrderNumber,
+            workOrder.Title,
+            workOrder.WorkType,
+            workOrder.Priority,
+            workOrder.Status.ToString(),
+            workOrder.Readiness.ToString(),
+            ToIssueSummary(workOrder),
+            workOrder.RequiredStartUtc,
+            workOrder.DueAtUtc,
+            workOrder.ScheduledStartUtc,
+            workOrder.EstimatedHours,
+            workOrder.SourceUpdatedAtUtc,
+            workOrder.ImportedAtUtc,
+            workOrder.AssetNumber,
+            workOrder.AssetName,
+            workOrder.AssetCriticality,
+            workOrder.FunctionalLocationCode,
+            workOrder.FunctionalLocationName);
+    }
+
     private static RecommendationWorkOrderResult ToWorkOrderResult(PlanningWorkOrderSnapshot workOrder)
     {
         return new RecommendationWorkOrderResult(
@@ -299,6 +479,19 @@ public sealed class PlanningService(IPlanningStore store) : IPlanningService
             workOrder.AssetName,
             workOrder.FunctionalLocationCode,
             workOrder.FunctionalLocationName);
+    }
+
+    private static SourceDataIssueSummary? ToIssueSummary(PlanningWorkOrderSnapshot workOrder)
+    {
+        if (string.IsNullOrWhiteSpace(workOrder.ReadinessIssueCode)
+            && string.IsNullOrWhiteSpace(workOrder.ReadinessIssueDetail))
+        {
+            return null;
+        }
+
+        return new SourceDataIssueSummary(
+            CleanOptional(workOrder.ReadinessIssueCode) ?? "source-data-review",
+            CleanOptional(workOrder.ReadinessIssueDetail) ?? "Source data requires planner review.");
     }
 
     private static PlannerDecisionResult ToDecisionResult(StoredPlannerDecision decision)
@@ -386,6 +579,27 @@ public sealed class PlanningService(IPlanningStore store) : IPlanningService
         }
     }
 
+    private static T? ParseOptionalEnum<T>(
+        Dictionary<string, List<string>> errors,
+        string path,
+        string? value)
+        where T : struct, Enum
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        if (Enum.TryParse<T>(value.Trim(), ignoreCase: true, out var parsed)
+            && Enum.IsDefined(parsed))
+        {
+            return parsed;
+        }
+
+        AddError(errors, path, "Contains an unsupported value.");
+        return null;
+    }
+
     private static void OptionalString(
         Dictionary<string, List<string>> errors,
         string path,
@@ -416,10 +630,42 @@ public sealed class PlanningService(IPlanningStore store) : IPlanningService
         messages.Add(message);
     }
 
+    private static string EncodeCursor(int offset)
+    {
+        return Convert.ToBase64String(Encoding.UTF8.GetBytes(offset.ToString(CultureInfo.InvariantCulture)))
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
+    }
+
+    private static bool TryDecodeCursor(string cursor, out int offset)
+    {
+        offset = 0;
+
+        var padded = cursor.Replace('-', '+').Replace('_', '/');
+        padded = padded.PadRight(padded.Length + ((4 - (padded.Length % 4)) % 4), '=');
+
+        try
+        {
+            var text = Encoding.UTF8.GetString(Convert.FromBase64String(padded));
+            return int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out offset) && offset >= 0;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+    }
+
     private sealed record NormalizedCreatePlanningRunRequest(
         string Horizon,
         DateTimeOffset HorizonStartUtc,
         DateTimeOffset HorizonEndUtc,
         string RequestedBy,
+        PlanningProblem? Problem);
+
+    private sealed record NormalizedWorkOrderQueryRequest(
+        WorkOrderQuerySpec? Spec,
+        string Sort,
+        WorkOrderQueryFilters AppliedFilters,
         PlanningProblem? Problem);
 }

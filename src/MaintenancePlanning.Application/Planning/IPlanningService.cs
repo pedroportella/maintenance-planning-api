@@ -14,6 +14,14 @@ public interface IPlanningService
         Guid planningRunId,
         CancellationToken cancellationToken);
 
+    Task<PlanningProcessingOutcome<WorkOrderQueryResult>> QueryWorkOrdersAsync(
+        WorkOrderQueryRequest request,
+        CancellationToken cancellationToken);
+
+    Task<PlanningProcessingOutcome<WorkOrderDetailResult>> GetWorkOrderAsync(
+        Guid workOrderId,
+        CancellationToken cancellationToken);
+
     Task<PlanningProcessingOutcome<PackageDecisionResult>> RecordPackageDecisionAsync(
         Guid packageId,
         RecordPackageDecisionRequest request,

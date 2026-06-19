@@ -155,6 +155,86 @@ public sealed class PlanningEndpointTests
         Assert.Contains("\"code\":\"planning-persistence-not-configured\"", body, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task WorkOrders_QuerySupportsAllowListedFiltersAndCursorPagination()
+    {
+        var store = InMemoryPlanningStore.WithDefaultCandidates();
+        await using var host = await TestApiHost.StartAsync(builder =>
+        {
+            builder.Services.AddSingleton<IPlanningStore>(store);
+        });
+
+        var firstResponse = await host.Client.GetAsync("/api/v1/work-orders?pageSize=1&sort=workOrderNumber");
+        var firstPage = await firstResponse.Content.ReadFromJsonAsync<WorkOrderQueryResult>();
+
+        Assert.Equal(HttpStatusCode.OK, firstResponse.StatusCode);
+        Assert.NotNull(firstPage);
+        Assert.Single(firstPage.Items);
+        Assert.Equal("WO-6100", firstPage.Items[0].WorkOrderNumber);
+        Assert.Equal("workOrderNumber", firstPage.Sort);
+        Assert.True(firstPage.AppliedFilters.Backlog);
+        Assert.NotNull(firstPage.NextCursor);
+
+        var secondResponse = await host.Client.GetAsync(
+            $"/api/v1/work-orders?pageSize=1&sort=workOrderNumber&cursor={Uri.EscapeDataString(firstPage.NextCursor)}");
+        var secondPage = await secondResponse.Content.ReadFromJsonAsync<WorkOrderQueryResult>();
+
+        Assert.Equal(HttpStatusCode.OK, secondResponse.StatusCode);
+        Assert.NotNull(secondPage);
+        Assert.Single(secondPage.Items);
+        Assert.Equal("WO-6200", secondPage.Items[0].WorkOrderNumber);
+        Assert.Equal("Blocked", secondPage.Items[0].Readiness);
+        Assert.Equal("parts-unavailable", secondPage.Items[0].SourceDataIssue?.Code);
+        Assert.Null(secondPage.NextCursor);
+
+        var filtered = await host.Client.GetFromJsonAsync<WorkOrderQueryResult>(
+            "/api/v1/work-orders?readiness=Ready&priority=high&functionalLocation=AREA-6100");
+
+        Assert.NotNull(filtered);
+        Assert.Single(filtered.Items);
+        Assert.Equal("Ready", filtered.AppliedFilters.Readiness);
+        Assert.Equal("high", filtered.AppliedFilters.Priority);
+        Assert.Equal("AREA-6100", filtered.AppliedFilters.FunctionalLocation);
+    }
+
+    [Fact]
+    public async Task WorkOrders_ReturnsDetailForPlannerBacklogItem()
+    {
+        var store = InMemoryPlanningStore.WithDefaultCandidates();
+        await using var host = await TestApiHost.StartAsync(builder =>
+        {
+            builder.Services.AddSingleton<IPlanningStore>(store);
+        });
+        var query = await host.Client.GetFromJsonAsync<WorkOrderQueryResult>("/api/v1/work-orders?readiness=Blocked");
+        Assert.NotNull(query);
+
+        var detailResponse = await host.Client.GetAsync($"/api/v1/work-orders/{query.Items[0].Id}");
+        var detail = await detailResponse.Content.ReadFromJsonAsync<WorkOrderDetailResult>();
+
+        Assert.Equal(HttpStatusCode.OK, detailResponse.StatusCode);
+        Assert.NotNull(detail);
+        Assert.Equal("WO-6200", detail.WorkOrderNumber);
+        Assert.Equal("Synthetic parts readiness issue.", detail.SourceDataIssue?.Detail);
+    }
+
+    [Fact]
+    public async Task WorkOrders_ReturnsValidationProblem_WhenSortIsUnsupported()
+    {
+        var store = InMemoryPlanningStore.WithDefaultCandidates();
+        await using var host = await TestApiHost.StartAsync(builder =>
+        {
+            builder.Services.AddSingleton<IPlanningStore>(store);
+        });
+
+        var response = await host.Client.GetAsync("/api/v1/work-orders?sort=unsupported");
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Contains("application/problem+json", response.Content.Headers.ContentType?.MediaType, StringComparison.Ordinal);
+        Assert.Contains("\"code\":\"planning-validation-failed\"", body, StringComparison.Ordinal);
+        Assert.Contains("sort", body, StringComparison.Ordinal);
+    }
+
     private sealed class InMemoryPlanningStore : IPlanningStore
     {
         private readonly List<PlanningWorkOrderSnapshot> _workOrders;
@@ -287,6 +367,66 @@ public sealed class PlanningEndpointTests
             return Task.FromResult(package);
         }
 
+        public Task<WorkOrderQueryPage> QueryWorkOrdersAsync(
+            WorkOrderQuerySpec query,
+            CancellationToken cancellationToken)
+        {
+            IEnumerable<PlanningWorkOrderSnapshot> workOrders = _workOrders;
+
+            if (query.Backlog)
+            {
+                workOrders = workOrders.Where(item =>
+                    item.Status is WorkOrderLifecycleStatus.Imported
+                        or WorkOrderLifecycleStatus.ReadyForPlanning
+                        or WorkOrderLifecycleStatus.Deferred);
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.Priority))
+            {
+                workOrders = workOrders.Where(item => item.Priority == query.Priority);
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.FunctionalLocation))
+            {
+                workOrders = workOrders.Where(item => item.FunctionalLocationCode == query.FunctionalLocation);
+            }
+
+            if (query.Readiness is not null)
+            {
+                workOrders = workOrders.Where(item => item.Readiness == query.Readiness.Value);
+            }
+
+            if (query.Status is not null)
+            {
+                workOrders = workOrders.Where(item => item.Status == query.Status.Value);
+            }
+
+            if (query.UpdatedSinceUtc is not null)
+            {
+                workOrders = workOrders.Where(item => item.SourceUpdatedAtUtc >= query.UpdatedSinceUtc.Value);
+            }
+
+            if (query.UpdatedBeforeUtc is not null)
+            {
+                workOrders = workOrders.Where(item => item.SourceUpdatedAtUtc < query.UpdatedBeforeUtc.Value);
+            }
+
+            workOrders = ApplySort(workOrders, query.SortField, query.SortDescending);
+
+            var rows = workOrders.Skip(query.Offset).Take(query.PageSize + 1).ToArray();
+            var items = rows.Take(query.PageSize).ToArray();
+            var nextOffset = rows.Length > query.PageSize ? query.Offset + items.Length : (int?)null;
+
+            return Task.FromResult(new WorkOrderQueryPage(items, nextOffset));
+        }
+
+        public Task<PlanningWorkOrderSnapshot?> FindWorkOrderAsync(
+            Guid workOrderId,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(_workOrders.SingleOrDefault(item => item.Id == workOrderId));
+        }
+
         public Task<IReadOnlyList<StoredPlannerDecision>> SavePackageDecisionAsync(
             Guid packageId,
             PlannerDecisionType decision,
@@ -370,6 +510,31 @@ public sealed class PlanningEndpointTests
                         _workOrders.Single(workOrder => workOrder.Id == item.WorkOrderId)))
                     .ToArray(),
                 Array.Empty<StoredPlannerDecision>());
+        }
+
+        private static IOrderedEnumerable<PlanningWorkOrderSnapshot> ApplySort(
+            IEnumerable<PlanningWorkOrderSnapshot> query,
+            string sortField,
+            bool descending)
+        {
+            return sortField switch
+            {
+                "priority" => descending
+                    ? query.OrderByDescending(item => item.Priority).ThenBy(item => item.WorkOrderNumber)
+                    : query.OrderBy(item => item.Priority).ThenBy(item => item.WorkOrderNumber),
+                "requiredStartUtc" => descending
+                    ? query.OrderByDescending(item => item.RequiredStartUtc ?? DateTimeOffset.MaxValue).ThenBy(item => item.WorkOrderNumber)
+                    : query.OrderBy(item => item.RequiredStartUtc ?? DateTimeOffset.MaxValue).ThenBy(item => item.WorkOrderNumber),
+                "updatedAtUtc" => descending
+                    ? query.OrderByDescending(item => item.SourceUpdatedAtUtc).ThenBy(item => item.WorkOrderNumber)
+                    : query.OrderBy(item => item.SourceUpdatedAtUtc).ThenBy(item => item.WorkOrderNumber),
+                "workOrderNumber" => descending
+                    ? query.OrderByDescending(item => item.WorkOrderNumber)
+                    : query.OrderBy(item => item.WorkOrderNumber),
+                _ => descending
+                    ? query.OrderByDescending(item => item.DueAtUtc ?? DateTimeOffset.MaxValue).ThenBy(item => item.WorkOrderNumber)
+                    : query.OrderBy(item => item.DueAtUtc ?? DateTimeOffset.MaxValue).ThenBy(item => item.WorkOrderNumber)
+            };
         }
 
         private static PlanningWorkOrderSnapshot CreateWorkOrder(

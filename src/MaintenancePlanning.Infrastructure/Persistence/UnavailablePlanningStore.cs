@@ -35,6 +35,16 @@ internal sealed class UnavailablePlanningStore : IPlanningStore
         CancellationToken cancellationToken) =>
         Task.FromResult<StoredPlanningPackage?>(null);
 
+    public Task<WorkOrderQueryPage> QueryWorkOrdersAsync(
+        WorkOrderQuerySpec query,
+        CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("Planning persistence is not configured.");
+
+    public Task<PlanningWorkOrderSnapshot?> FindWorkOrderAsync(
+        Guid workOrderId,
+        CancellationToken cancellationToken) =>
+        Task.FromResult<PlanningWorkOrderSnapshot?>(null);
+
     public Task<IReadOnlyList<StoredPlannerDecision>> SavePackageDecisionAsync(
         Guid packageId,
         PlannerDecisionType decision,

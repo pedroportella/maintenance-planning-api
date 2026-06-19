@@ -3,10 +3,15 @@ using MaintenancePlanning.Api.Errors;
 using MaintenancePlanning.Api.Health;
 using MaintenancePlanning.Api.Hosting;
 using MaintenancePlanning.Api.Middleware;
+using MaintenancePlanning.Api.Security;
 using MaintenancePlanning.Application.Imports;
 using MaintenancePlanning.Application.Planning;
 using MaintenancePlanning.Infrastructure;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.OpenApi.Models;
+using System.Security.Claims;
+using System.Threading.RateLimiting;
 
 namespace MaintenancePlanning.Api;
 
@@ -58,6 +63,43 @@ public static class ApiApplication
         builder.Services.AddScoped<IImportService, ImportService>();
         builder.Services.AddScoped<IPlanningService, PlanningService>();
         builder.Services.AddInfrastructureServices(builder.Configuration);
+        builder.Services
+            .AddAuthentication(ApiAuthorization.AuthenticationScheme)
+            .AddScheme<AuthenticationSchemeOptions, TestTokenAuthenticationHandler>(
+                ApiAuthorization.AuthenticationScheme,
+                _ => { });
+        builder.Services.AddAuthorization(options => options.AddApiPolicies());
+        builder.Services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddPolicy(
+                ApiRateLimitPolicies.Command,
+                httpContext =>
+                {
+                    var permitLimit = Math.Max(
+                        1,
+                        builder.Configuration.GetValue<int?>(
+                            "MaintenancePlanning:Security:CommandRateLimit:PermitLimit") ?? 120);
+                    var windowSeconds = Math.Max(
+                        1,
+                        builder.Configuration.GetValue<int?>(
+                            "MaintenancePlanning:Security:CommandRateLimit:WindowSeconds") ?? 60);
+                    var partitionKey =
+                        httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                        ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                        ?? "anonymous";
+
+                    return RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey,
+                        _ => new FixedWindowRateLimiterOptions
+                        {
+                            AutoReplenishment = true,
+                            PermitLimit = permitLimit,
+                            QueueLimit = 0,
+                            Window = TimeSpan.FromSeconds(windowSeconds)
+                        });
+                });
+        });
 
         builder.Services
             .AddHealthChecks()
@@ -76,6 +118,17 @@ public static class ApiApplication
                     Version = "v1",
                     Description = "Production-shaped review API for synthetic maintenance-planning workflows."
                 });
+            options.AddSecurityDefinition(
+                "Bearer",
+                new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "local-test-token",
+                    Description = "Use synthetic local review tokens only. Runtime JWT/OIDC issuer wiring is a later deployment concern."
+                });
         });
     }
 
@@ -89,6 +142,9 @@ public static class ApiApplication
         app.UseExceptionHandler(errorApp => errorApp.Run(SafeProblemDetails.WriteUnhandledExceptionAsync));
         app.UseMiddleware<CorrelationIdMiddleware>();
         app.UseMiddleware<GracefulShutdownMiddleware>();
+        app.UseAuthentication();
+        app.UseAuthorization();
+        app.UseRateLimiter();
 
         app.UseSwagger(options =>
         {
@@ -106,6 +162,7 @@ public static class ApiApplication
         app.MapHealthEndpoints();
         app.MapImportEndpoints();
         app.MapPlanningEndpoints();
+        app.MapWorkOrderEndpoints();
         app.MapOperationsEndpoints();
     }
 }

@@ -1,3 +1,4 @@
+using MaintenancePlanning.Api.Security;
 using MaintenancePlanning.Application.Planning;
 
 namespace MaintenancePlanning.Api.Endpoints;
@@ -6,13 +7,20 @@ public static class PlanningEndpoints
 {
     public static IEndpointRouteBuilder MapPlanningEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var planningRuns = endpoints.MapGroup("/api/v1/planning-runs").WithTags("Planning");
+        var planningRuns = endpoints
+            .MapGroup("/api/v1/planning-runs")
+            .WithTags("Planning")
+            .RequireAuthorization(ApiAuthorization.PlannerPolicy);
 
         planningRuns
             .MapPost("", CreatePlanningRunAsync)
             .WithName("CreatePlanningRun")
+            .RequireRateLimiting(ApiRateLimitPolicies.Command)
             .Accepts<CreatePlanningRunRequest>("application/json")
             .Produces<PlanningRunResult>(StatusCodes.Status202Accepted)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
@@ -20,6 +28,8 @@ public static class PlanningEndpoints
             .MapGet("/{id:guid}", GetPlanningRunAsync)
             .WithName("GetPlanningRun")
             .Produces<PlanningRunResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
@@ -27,6 +37,8 @@ public static class PlanningEndpoints
             .MapGet("/{id:guid}/recommendations", GetRecommendationsAsync)
             .WithName("GetPlanningRunRecommendations")
             .Produces<PlanningRecommendationsResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
@@ -34,8 +46,13 @@ public static class PlanningEndpoints
             .MapPost("/api/v1/packages/{id:guid}/decisions", RecordPackageDecisionAsync)
             .WithName("RecordPackageDecision")
             .WithTags("Planning")
+            .RequireAuthorization(ApiAuthorization.PlannerPolicy)
+            .RequireRateLimiting(ApiRateLimitPolicies.Command)
             .Accepts<RecordPackageDecisionRequest>("application/json")
             .Produces<PackageDecisionResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);

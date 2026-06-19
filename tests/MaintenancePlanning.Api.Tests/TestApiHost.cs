@@ -1,6 +1,8 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Sockets;
 using MaintenancePlanning.Api;
+using MaintenancePlanning.Api.Security;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -21,7 +23,8 @@ internal sealed class TestApiHost : IAsyncDisposable
 
     public static async Task<TestApiHost> StartAsync(
         Action<WebApplicationBuilder>? configureBuilder = null,
-        Action<WebApplication>? configureApp = null)
+        Action<WebApplication>? configureApp = null,
+        bool authenticated = true)
     {
         var port = GetAvailablePort();
         var baseAddress = new Uri($"http://127.0.0.1:{port}");
@@ -41,7 +44,13 @@ internal sealed class TestApiHost : IAsyncDisposable
 
         await app.StartAsync();
 
-        return new TestApiHost(app, baseAddress);
+        var host = new TestApiHost(app, baseAddress);
+        if (authenticated)
+        {
+            host.Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", TestTokenNames.Reviewer);
+        }
+
+        return host;
     }
 
     public async ValueTask DisposeAsync()

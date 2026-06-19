@@ -14,6 +14,8 @@ Current persistence is an EF Core SQL Server model with explicit migrations. The
 
 API startup reports migration readiness but does not apply migrations. Local development and later release orchestration apply migrations explicitly.
 
+Health and OpenAPI routes remain public for readiness and review tooling. Application routes under `/api/v1` use synthetic local bearer tokens with planner, import and operations policies; deployed identity should replace that local mode with issuer and audience validated JWT/OIDC configuration.
+
 ## Boundary
 
 All source data is synthetic. Real source-system access, employer/client systems, production identity, production resilience and formal assurance are production-next concerns.

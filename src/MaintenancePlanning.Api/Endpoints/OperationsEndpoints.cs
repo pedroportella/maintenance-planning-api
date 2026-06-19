@@ -1,3 +1,4 @@
+using MaintenancePlanning.Api.Security;
 using MaintenancePlanning.Application.Imports;
 using MaintenancePlanning.Application.Operations;
 using MaintenancePlanning.Application.Persistence;
@@ -8,17 +9,24 @@ public static class OperationsEndpoints
 {
     public static IEndpointRouteBuilder MapOperationsEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var operations = endpoints.MapGroup("/api/v1/operations").WithTags("Operations");
+        var operations = endpoints
+            .MapGroup("/api/v1/operations")
+            .WithTags("Operations")
+            .RequireAuthorization(ApiAuthorization.OperationsPolicy);
 
         operations
             .MapGet("/migration-readiness", CheckMigrationReadinessAsync)
             .WithName("GetMigrationReadiness")
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .Produces<MigrationReadinessReport>(StatusCodes.Status200OK)
             .Produces<MigrationReadinessReport>(StatusCodes.Status503ServiceUnavailable);
 
         operations
             .MapGet("/posture", GetPostureAsync)
             .WithName("GetOperationsPosture")
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .Produces<OperationsPostureReport>(StatusCodes.Status200OK);
 
         return endpoints;
@@ -45,7 +53,8 @@ public static class OperationsEndpoints
 
         return Results.Ok(new OperationsPostureReport(
             DatabaseConfigured: importStore.IsConfigured,
-            Status: importStore.IsConfigured ? "ready" : "import-persistence-not-configured",
+            Status: importStore.IsConfigured ? "healthy" : "degraded",
+            IssueCode: importStore.IsConfigured ? null : "import-persistence-not-configured",
             LatestImport: latestImport is null
                 ? null
                 : new LatestImportFreshness(
@@ -60,6 +69,11 @@ public static class OperationsEndpoints
                     latestImport.IgnoredStaleCount,
                     latestImport.ReceivedAtUtc,
                     latestImport.CompletedAtUtc),
+            Eventing: new IntegrationEventingPosture(
+                PublishMode: "not-configured",
+                QueueDepth: 0,
+                DeadLetterCount: 0,
+                LastFailureCode: null),
             CheckedAtUtc: DateTimeOffset.UtcNow));
     }
 }

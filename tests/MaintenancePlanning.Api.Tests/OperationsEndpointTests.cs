@@ -49,9 +49,14 @@ public sealed class OperationsEndpointTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.False(document.RootElement.GetProperty("databaseConfigured").GetBoolean());
         Assert.Equal(
-            "import-persistence-not-configured",
+            "degraded",
             document.RootElement.GetProperty("status").GetString());
+        Assert.Equal(
+            "import-persistence-not-configured",
+            document.RootElement.GetProperty("issueCode").GetString());
         Assert.Equal(JsonValueKind.Null, document.RootElement.GetProperty("latestImport").ValueKind);
+        Assert.Equal("not-configured", document.RootElement.GetProperty("eventing").GetProperty("publishMode").GetString());
+        Assert.Equal(0, document.RootElement.GetProperty("eventing").GetProperty("deadLetterCount").GetInt32());
     }
 
     private sealed class PendingMigrationReporter : IMigrationReadinessReporter

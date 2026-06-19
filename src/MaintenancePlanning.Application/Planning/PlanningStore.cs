@@ -29,6 +29,14 @@ public interface IPlanningStore
         Guid packageId,
         CancellationToken cancellationToken);
 
+    Task<WorkOrderQueryPage> QueryWorkOrdersAsync(
+        WorkOrderQuerySpec query,
+        CancellationToken cancellationToken);
+
+    Task<PlanningWorkOrderSnapshot?> FindWorkOrderAsync(
+        Guid workOrderId,
+        CancellationToken cancellationToken);
+
     Task<IReadOnlyList<StoredPlannerDecision>> SavePackageDecisionAsync(
         Guid packageId,
         PlannerDecisionType decision,
@@ -71,6 +79,23 @@ public sealed record PlanningWorkOrderSnapshot(
     Guid? FunctionalLocationId,
     string? FunctionalLocationCode,
     string? FunctionalLocationName);
+
+public sealed record WorkOrderQuerySpec(
+    int Offset,
+    int PageSize,
+    bool Backlog,
+    string? Priority,
+    string? FunctionalLocation,
+    SourceDataReadiness? Readiness,
+    WorkOrderLifecycleStatus? Status,
+    DateTimeOffset? UpdatedSinceUtc,
+    DateTimeOffset? UpdatedBeforeUtc,
+    string SortField,
+    bool SortDescending);
+
+public sealed record WorkOrderQueryPage(
+    IReadOnlyList<PlanningWorkOrderSnapshot> Items,
+    int? NextOffset);
 
 public sealed record PlanningMajorEventSnapshot(
     Guid Id,

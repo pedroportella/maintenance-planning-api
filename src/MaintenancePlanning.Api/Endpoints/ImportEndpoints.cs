@@ -1,4 +1,5 @@
 using MaintenancePlanning.Application.Imports;
+using MaintenancePlanning.Api.Security;
 
 namespace MaintenancePlanning.Api.Endpoints;
 
@@ -6,13 +7,20 @@ public static class ImportEndpoints
 {
     public static IEndpointRouteBuilder MapImportEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var imports = endpoints.MapGroup("/api/v1/imports").WithTags("Imports");
+        var imports = endpoints
+            .MapGroup("/api/v1/imports")
+            .WithTags("Imports")
+            .RequireAuthorization(ApiAuthorization.ImportsPolicy);
 
         imports
             .MapPost("/source-work-orders", ImportSourceWorkOrdersAsync)
             .WithName("ImportSourceWorkOrders")
+            .RequireRateLimiting(ApiRateLimitPolicies.Command)
             .Accepts<SourceWorkOrderImportRequest>("application/json")
             .Produces<ImportResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
@@ -20,8 +28,12 @@ public static class ImportEndpoints
         imports
             .MapPost("/maintenance-events", ImportMaintenanceEventsAsync)
             .WithName("ImportMaintenanceEvents")
+            .RequireRateLimiting(ApiRateLimitPolicies.Command)
             .Accepts<MaintenanceEventImportRequest>("application/json")
             .Produces<ImportResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);

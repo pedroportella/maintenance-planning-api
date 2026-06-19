@@ -11,6 +11,7 @@ HTTP surface:
 - `POST /api/v1/imports/maintenance-events`
 - `GET /api/v1/operations/posture`
 - `GET /api/v1/work-orders`
+- `GET /api/v1/work-orders/{id}`
 - `POST /api/v1/planning-runs`
 - `GET /api/v1/planning-runs/{id}`
 - `GET /api/v1/planning-runs/{id}/recommendations`
@@ -20,7 +21,24 @@ Errors should use `application/problem+json` with a correlation identifier.
 
 `GET /api/v1/operations/migration-readiness` reports whether SQL Server is configured, reachable and up to date with EF Core migrations. It does not apply migrations.
 
-`GET /api/v1/operations/posture` reports whether import persistence is configured and, when available, the latest import freshness summary.
+`GET /api/v1/operations/posture` reports whether import persistence is configured and, when available, the latest import freshness summary. It also includes a synthetic eventing posture placeholder for queue and dead-letter counts until the eventing stage is implemented.
+
+## Authentication
+
+Health and OpenAPI routes are public for local readiness checks. API routes under `/api/v1` require a bearer token in local review mode:
+
+```text
+Authorization: Bearer local-reviewer-token
+```
+
+Local synthetic tokens are:
+
+- `local-planner-token` for planner reads and decisions;
+- `local-import-token` for source-system-shaped import feeds;
+- `local-operations-token` for operations posture and migration readiness;
+- `local-reviewer-token` for reviewer smoke checks across all policies.
+
+These are not production identity credentials. Deployment identity should replace local tokens with JWT/OIDC issuer and audience validation.
 
 ## Imports
 
@@ -53,6 +71,29 @@ Maintenance events use the checked envelope field names `eventId`, `eventType`, 
 Both import routes return an import result with accepted, rejected, ignored duplicate and ignored stale counts. Reusing the same idempotency key and request body replays the stored result without creating duplicate rows. Reusing the same idempotency key with a different body returns `409`. Invalid request shape returns `422`.
 
 Accepted work-order records retain source identifiers, source-data readiness and issue summaries using `Ready`, `NeedsReview` and `Blocked`.
+
+## Work Orders
+
+`GET /api/v1/work-orders` returns a planner-facing backlog page with readiness and source-data issue summaries. Supported query parameters are allow-listed:
+
+- `cursor`;
+- `pageSize`, from 1 to 100;
+- `backlog`, defaulting to `true`;
+- `priority`;
+- `functionalLocation`;
+- `readiness`, using `Ready`, `NeedsReview` or `Blocked`;
+- `status`, using work-order lifecycle status names;
+- `updatedSinceUtc`;
+- `updatedBeforeUtc`;
+- `sort`, using `dueAtUtc`, `priority`, `requiredStartUtc`, `updatedAtUtc` or `workOrderNumber`, with a leading `-` for descending order.
+
+Example:
+
+```text
+GET /api/v1/work-orders?pageSize=25&readiness=Ready&sort=dueAtUtc
+```
+
+`GET /api/v1/work-orders/{id}` returns a single work order detail. Both work-order routes require planner scope or role. Unsupported filter values return `422`.
 
 ## Planning
 

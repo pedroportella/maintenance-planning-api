@@ -23,6 +23,8 @@ public sealed class OpenApiTests
         Assert.True(paths.TryGetProperty("/health/ready", out _));
         Assert.True(paths.TryGetProperty("/api/v1/imports/source-work-orders", out _));
         Assert.True(paths.TryGetProperty("/api/v1/imports/maintenance-events", out _));
+        Assert.True(paths.TryGetProperty("/api/v1/work-orders", out _));
+        Assert.True(paths.TryGetProperty("/api/v1/work-orders/{id}", out _));
         Assert.True(paths.TryGetProperty("/api/v1/planning-runs", out _));
         Assert.True(paths.TryGetProperty("/api/v1/planning-runs/{id}", out _));
         Assert.True(paths.TryGetProperty("/api/v1/planning-runs/{id}/recommendations", out _));

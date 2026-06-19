@@ -96,6 +96,71 @@ internal sealed class EfPlanningStore(MaintenancePlanningDbContext dbContext) : 
         return package is null ? null : ToStoredPackage(package);
     }
 
+    public async Task<WorkOrderQueryPage> QueryWorkOrdersAsync(
+        WorkOrderQuerySpec query,
+        CancellationToken cancellationToken)
+    {
+        var workOrders = WorkOrderQuery();
+
+        if (query.Backlog)
+        {
+            workOrders = workOrders.Where(item =>
+                item.Status == WorkOrderLifecycleStatus.Imported
+                || item.Status == WorkOrderLifecycleStatus.ReadyForPlanning
+                || item.Status == WorkOrderLifecycleStatus.Deferred);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Priority))
+        {
+            workOrders = workOrders.Where(item => item.Priority == query.Priority);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.FunctionalLocation))
+        {
+            workOrders = workOrders.Where(item =>
+                item.FunctionalLocation != null && item.FunctionalLocation.Code == query.FunctionalLocation);
+        }
+
+        if (query.Readiness is not null)
+        {
+            workOrders = workOrders.Where(item => item.Readiness == query.Readiness.Value);
+        }
+
+        if (query.Status is not null)
+        {
+            workOrders = workOrders.Where(item => item.Status == query.Status.Value);
+        }
+
+        if (query.UpdatedSinceUtc is not null)
+        {
+            workOrders = workOrders.Where(item => item.SourceUpdatedAtUtc >= query.UpdatedSinceUtc.Value);
+        }
+
+        if (query.UpdatedBeforeUtc is not null)
+        {
+            workOrders = workOrders.Where(item => item.SourceUpdatedAtUtc < query.UpdatedBeforeUtc.Value);
+        }
+
+        var rows = await ApplyWorkOrderSort(workOrders, query.SortField, query.SortDescending)
+            .Skip(query.Offset)
+            .Take(query.PageSize + 1)
+            .ToArrayAsync(cancellationToken);
+        var items = rows.Take(query.PageSize).Select(ToWorkOrderSnapshot).ToArray();
+        var nextOffset = rows.Length > query.PageSize ? query.Offset + items.Length : (int?)null;
+
+        return new WorkOrderQueryPage(items, nextOffset);
+    }
+
+    public async Task<PlanningWorkOrderSnapshot?> FindWorkOrderAsync(
+        Guid workOrderId,
+        CancellationToken cancellationToken)
+    {
+        var workOrder = await WorkOrderQuery()
+            .SingleOrDefaultAsync(item => item.Id == workOrderId, cancellationToken);
+
+        return workOrder is null ? null : ToWorkOrderSnapshot(workOrder);
+    }
+
     public async Task<IReadOnlyList<StoredPlannerDecision>> SavePackageDecisionAsync(
         Guid packageId,
         PlannerDecisionType decision,
@@ -186,6 +251,40 @@ internal sealed class EfPlanningStore(MaintenancePlanningDbContext dbContext) : 
             .ThenInclude(item => item.FunctionalLocation)
             .Include(item => item.Decisions)
             .AsSplitQuery();
+    }
+
+    private IQueryable<WorkOrder> WorkOrderQuery()
+    {
+        return dbContext.WorkOrders
+            .AsNoTracking()
+            .Include(item => item.Asset)
+            .Include(item => item.FunctionalLocation);
+    }
+
+    private static IOrderedQueryable<WorkOrder> ApplyWorkOrderSort(
+        IQueryable<WorkOrder> query,
+        string sortField,
+        bool descending)
+    {
+        return sortField switch
+        {
+            "dueAtUtc" => descending
+                ? query.OrderByDescending(item => item.DueAtUtc ?? DateTimeOffset.MaxValue).ThenBy(item => item.WorkOrderNumber)
+                : query.OrderBy(item => item.DueAtUtc ?? DateTimeOffset.MaxValue).ThenBy(item => item.WorkOrderNumber),
+            "priority" => descending
+                ? query.OrderByDescending(item => item.Priority).ThenBy(item => item.WorkOrderNumber)
+                : query.OrderBy(item => item.Priority).ThenBy(item => item.WorkOrderNumber),
+            "requiredStartUtc" => descending
+                ? query.OrderByDescending(item => item.RequiredStartUtc ?? DateTimeOffset.MaxValue).ThenBy(item => item.WorkOrderNumber)
+                : query.OrderBy(item => item.RequiredStartUtc ?? DateTimeOffset.MaxValue).ThenBy(item => item.WorkOrderNumber),
+            "updatedAtUtc" => descending
+                ? query.OrderByDescending(item => item.SourceUpdatedAtUtc).ThenBy(item => item.WorkOrderNumber)
+                : query.OrderBy(item => item.SourceUpdatedAtUtc).ThenBy(item => item.WorkOrderNumber),
+            "workOrderNumber" => descending
+                ? query.OrderByDescending(item => item.WorkOrderNumber)
+                : query.OrderBy(item => item.WorkOrderNumber),
+            _ => query.OrderBy(item => item.DueAtUtc ?? DateTimeOffset.MaxValue).ThenBy(item => item.WorkOrderNumber)
+        };
     }
 
     private static StoredPlanningPackage ToStoredPackage(WorkOrderPackage package)

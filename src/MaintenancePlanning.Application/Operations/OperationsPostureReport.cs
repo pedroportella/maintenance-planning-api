@@ -3,7 +3,9 @@ namespace MaintenancePlanning.Application.Operations;
 public sealed record OperationsPostureReport(
     bool DatabaseConfigured,
     string Status,
+    string? IssueCode,
     LatestImportFreshness? LatestImport,
+    IntegrationEventingPosture Eventing,
     DateTimeOffset CheckedAtUtc);
 
 public sealed record LatestImportFreshness(
@@ -18,3 +20,9 @@ public sealed record LatestImportFreshness(
     int IgnoredStaleCount,
     DateTimeOffset ReceivedAtUtc,
     DateTimeOffset? CompletedAtUtc);
+
+public sealed record IntegrationEventingPosture(
+    string PublishMode,
+    int QueueDepth,
+    int DeadLetterCount,
+    string? LastFailureCode);
