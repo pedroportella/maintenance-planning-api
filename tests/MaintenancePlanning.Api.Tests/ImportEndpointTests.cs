@@ -117,8 +117,8 @@ public sealed class ImportEndpointTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.NotNull(result);
         Assert.Equal("maintenance-events", result.ImportKind);
-        Assert.Equal(7, result.ReceivedCount);
-        Assert.Equal(4, result.AcceptedCount);
+        Assert.Equal(8, result.ReceivedCount);
+        Assert.Equal(5, result.AcceptedCount);
         Assert.Equal(1, result.RejectedCount);
         Assert.Equal(1, result.IgnoredDuplicateCount);
         Assert.Equal(1, result.IgnoredStaleCount);
@@ -137,7 +137,7 @@ public sealed class ImportEndpointTests
 
         Assert.Equal(HttpStatusCode.OK, postureResponse.StatusCode);
         Assert.Equal("maintenance-events", latestImport.GetProperty("importKind").GetString());
-        Assert.Equal(7, latestImport.GetProperty("receivedCount").GetInt32());
+        Assert.Equal(8, latestImport.GetProperty("receivedCount").GetInt32());
         Assert.Equal(1, latestImport.GetProperty("ignoredDuplicateCount").GetInt32());
     }
 
@@ -241,7 +241,20 @@ public sealed class ImportEndpointTests
                 PartsEvent(
                     "evt-baseline-week-0007",
                     "baseline-week:PART-3000-WO-3000",
-                    occurredAt: ReferenceTime.AddMinutes(7))
+                    occurredAt: ReferenceTime.AddMinutes(7)),
+                WorkOrderEvent(
+                    "evt-baseline-week-0008",
+                    "WorkOrderStatusChanged",
+                    "baseline-week:WO-3001:status",
+                    CreateWorkOrder(
+                        "WO-3001",
+                        "Inspect standby valve",
+                        "Blocked",
+                        ReferenceTime.AddMinutes(8),
+                        estimatedHours: null,
+                        issueCode: "missing-estimate",
+                        issueSeverity: "warning"),
+                    occurredAt: ReferenceTime.AddMinutes(8))
             }
         };
     }

@@ -144,9 +144,11 @@ internal sealed class EfImportStore(MaintenancePlanningDbContext dbContext) : II
         WorkOrderImportRecord record,
         CancellationToken cancellationToken)
     {
-        var workOrder = await dbContext.WorkOrders.SingleOrDefaultAsync(
-            item => item.SourceSystem == record.SourceSystem && item.SourceId == record.SourceId,
-            cancellationToken);
+        var workOrder = dbContext.WorkOrders.Local.SingleOrDefault(item =>
+            item.SourceSystem == record.SourceSystem && item.SourceId == record.SourceId)
+            ?? await dbContext.WorkOrders.SingleOrDefaultAsync(
+                item => item.SourceSystem == record.SourceSystem && item.SourceId == record.SourceId,
+                cancellationToken);
 
         if (workOrder is null)
         {
@@ -193,9 +195,11 @@ internal sealed class EfImportStore(MaintenancePlanningDbContext dbContext) : II
         MajorEventImportRecord record,
         CancellationToken cancellationToken)
     {
-        var majorEvent = await dbContext.MajorEvents.SingleOrDefaultAsync(
-            item => item.SourceSystem == record.SourceSystem && item.SourceId == record.SourceId,
-            cancellationToken);
+        var majorEvent = dbContext.MajorEvents.Local.SingleOrDefault(item =>
+            item.SourceSystem == record.SourceSystem && item.SourceId == record.SourceId)
+            ?? await dbContext.MajorEvents.SingleOrDefaultAsync(
+                item => item.SourceSystem == record.SourceSystem && item.SourceId == record.SourceId,
+                cancellationToken);
 
         if (majorEvent is null)
         {
