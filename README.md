@@ -30,7 +30,7 @@ This is a prototype for review and learning. It does not connect to any employer
 
 ## Current State
 
-The repository now contains the initial .NET API, worker and test solution skeleton, a containerised API runtime path, SQL Server persistence through EF Core migrations, and local HTTP import contracts for synthetic source-system-shaped work orders and maintenance events. Implemented foundation capabilities include startup, liveness and readiness health endpoints, OpenAPI JSON, migration readiness reporting, idempotent import audit fields, correlation ids, safe problem-details errors, structured console logging, graceful shutdown state, explicit local migrations and a restricted container smoke.
+The repository now contains the initial .NET API, worker and test solution skeleton, a containerised API runtime path, SQL Server persistence through EF Core migrations, local HTTP import contracts for synthetic source-system-shaped work orders and maintenance events, and planning-run recommendation routes. Implemented foundation capabilities include startup, liveness and readiness health endpoints, OpenAPI JSON, migration readiness reporting, idempotent import audit fields, deterministic package recommendations, planner decision audit rows, correlation ids, safe problem-details errors, structured console logging, graceful shutdown state, explicit local migrations and a restricted container smoke.
 
 ## Run Locally
 
@@ -47,6 +47,10 @@ Useful local endpoints:
 - `GET /api/v1/operations/migration-readiness`
 - `POST /api/v1/imports/source-work-orders`
 - `POST /api/v1/imports/maintenance-events`
+- `POST /api/v1/planning-runs`
+- `GET /api/v1/planning-runs/{id}`
+- `GET /api/v1/planning-runs/{id}/recommendations`
+- `POST /api/v1/packages/{id}/decisions`
 
 To run with local SQL Server:
 

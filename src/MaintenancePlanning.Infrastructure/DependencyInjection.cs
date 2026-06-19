@@ -1,4 +1,5 @@
 using MaintenancePlanning.Application.Persistence;
+using MaintenancePlanning.Application.Planning;
 using MaintenancePlanning.Application.Readiness;
 using MaintenancePlanning.Application.Imports;
 using MaintenancePlanning.Infrastructure.Persistence;
@@ -41,12 +42,14 @@ public static class DependencyInjection
 
             services.AddScoped<IMigrationReadinessReporter, DbMigrationReadinessReporter>();
             services.AddScoped<IImportStore, EfImportStore>();
+            services.AddScoped<IPlanningStore, EfPlanningStore>();
             services.TryAddSingleton<IReadinessProbe, DatabaseReadinessProbe>();
         }
         else
         {
             services.TryAddSingleton<IMigrationReadinessReporter, UnconfiguredMigrationReadinessReporter>();
             services.TryAddSingleton<IImportStore, UnavailableImportStore>();
+            services.TryAddSingleton<IPlanningStore, UnavailablePlanningStore>();
             services.TryAddSingleton<IReadinessProbe, NoExternalDependencyReadinessProbe>();
         }
 

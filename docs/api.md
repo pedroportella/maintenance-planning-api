@@ -53,3 +53,41 @@ Maintenance events use the checked envelope field names `eventId`, `eventType`, 
 Both import routes return an import result with accepted, rejected, ignored duplicate and ignored stale counts. Reusing the same idempotency key and request body replays the stored result without creating duplicate rows. Reusing the same idempotency key with a different body returns `409`. Invalid request shape returns `422`.
 
 Accepted work-order records retain source identifiers, source-data readiness and issue summaries using `Ready`, `NeedsReview` and `Blocked`.
+
+## Planning
+
+Planning endpoints require database persistence to be configured. When persistence is not configured they return `503` with a safe problem response.
+
+`POST /api/v1/planning-runs` creates a planning run over imported synthetic work orders. The route completes deterministic local recommendation generation during the request and returns `202 Accepted` with a `Location` header for the run:
+
+```json
+{
+  "horizon": "two-week",
+  "horizonStartUtc": "2026-01-15T00:00:00Z",
+  "horizonEndUtc": "2026-01-29T00:00:00Z",
+  "requestedBy": "local-review"
+}
+```
+
+`GET /api/v1/planning-runs/{id}` returns the run status, horizon and recommendation counts.
+
+`GET /api/v1/planning-runs/{id}/recommendations` returns package recommendations with:
+
+- deterministic score and actionability (`ready-now`, `needs-resolution` or `blocked`);
+- source-data readiness summary using `Ready`, `NeedsReview` and `Blocked`;
+- blocker summaries grouped as data, parts, crew or window constraints;
+- planner-facing explanation text;
+- package work-order items and prior planner decisions.
+
+`POST /api/v1/packages/{id}/decisions` records an audited planner decision:
+
+```json
+{
+  "decision": "Accepted",
+  "reasonCode": "ready-for-weekly-plan",
+  "notes": "Synthetic planner decision for local review.",
+  "decidedBy": "local-review"
+}
+```
+
+Allowed decision values are `Accepted`, `Rejected` and `Deferred`. A decision updates package status and records one or more decision audit rows. Invalid decision payloads return `422`.
