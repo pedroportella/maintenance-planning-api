@@ -73,6 +73,21 @@ migration_image_digest
 
 Each value must be formatted as `sha256:<digest>`. The Terraform combines those digests with the matching ECR repository URL. Do not deploy tag-only task definitions.
 
+## Migration Release Gate
+
+Terraform provisions the migration task definition, private subnet placement, security group, log group and secret reference, but it does not execute migrations. Release orchestration is handled by [the migration release gate](release-gate.md).
+
+After Terraform has created the review infrastructure, use these outputs when running the gate:
+
+```bash
+terraform -chdir=infra/aws output -raw cluster_name
+terraform -chdir=infra/aws output -raw api_service_name
+terraform -chdir=infra/aws output -json private_subnet_ids
+terraform -chdir=infra/aws output -raw migration_security_group_id
+```
+
+The release gate registers digest-pinned task-definition revisions, runs the `migration-runner` task privately, verifies the stopped task result and only then updates the API service revision.
+
 ## Deploy Review
 
 Before applying:
@@ -128,5 +143,6 @@ Post-destroy checks:
 
 - HTTPS, WAF, DNS and stricter ingress depend on review account inputs.
 - Application and migration database users still need a controlled credential creation and rotation path.
-- The migration-runner image and release gate are implemented in the next infrastructure stage; this stack only defines the task infrastructure.
+- Review deployment has not been applied or smoked from this repository state.
+- Task-definition JSON rendering in a real pipeline still needs to be wired to the chosen image push process.
 - Event ingestion and simulator AWS publish mode are later stages; messaging resources are present so IAM, queues and logs have a stable target.

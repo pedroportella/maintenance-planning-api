@@ -8,6 +8,7 @@
 **/obj/
 dist/
 build/
+artifacts/
 coverage/
 TestResults/
 test-results/

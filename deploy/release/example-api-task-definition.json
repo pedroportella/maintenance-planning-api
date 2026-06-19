@@ -1,0 +1,85 @@
+{
+  "family": "maintenance-planning-review-api",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::000000000000:role/review-ecs-execution",
+  "taskRoleArn": "arn:aws:iam::000000000000:role/review-api-task",
+  "runtimePlatform": {
+    "operatingSystemFamily": "LINUX",
+    "cpuArchitecture": "X86_64"
+  },
+  "volumes": [
+    {
+      "name": "api-tmp"
+    }
+  ],
+  "containerDefinitions": [
+    {
+      "name": "api",
+      "image": "000000000000.dkr.ecr.ap-southeast-2.amazonaws.com/maintenance-planning-review-api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "essential": true,
+      "user": "1654",
+      "readonlyRootFilesystem": true,
+      "linuxParameters": {
+        "initProcessEnabled": true,
+        "capabilities": {
+          "drop": ["ALL"]
+        }
+      },
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "hostPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "api-tmp",
+          "containerPath": "/tmp",
+          "readOnly": false
+        }
+      ],
+      "environment": [
+        {
+          "name": "ASPNETCORE_URLS",
+          "value": "http://+:8080"
+        },
+        {
+          "name": "DOTNET_EnableDiagnostics",
+          "value": "0"
+        },
+        {
+          "name": "SOURCE_REVISION",
+          "value": "example-revision"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "MaintenancePlanning__Database__Password",
+          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:000000000000:secret:review-api-database-password"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/aws/ecs/maintenance-planning-review/api",
+          "awslogs-region": "ap-southeast-2",
+          "awslogs-stream-prefix": "api"
+        }
+      }
+    }
+  ],
+  "tags": [
+    {
+      "key": "release-id",
+      "value": "example-release"
+    },
+    {
+      "key": "source-revision",
+      "value": "example-revision"
+    }
+  ]
+}

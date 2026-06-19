@@ -28,6 +28,16 @@ output "migration_repository_url" {
   value       = module.ecr.repository_urls.migration
 }
 
+output "cluster_name" {
+  description = "ECS cluster name for release orchestration."
+  value       = module.app.cluster_name
+}
+
+output "api_service_name" {
+  description = "ECS API service name for release orchestration."
+  value       = module.app.api_service_name
+}
+
 output "database_endpoint" {
   description = "Review database endpoint."
   value       = module.database.endpoint
@@ -37,6 +47,16 @@ output "database_endpoint" {
 output "migration_task_definition_arn" {
   description = "Migration task definition ARN for release orchestration."
   value       = module.worker.migration_task_definition_arn
+}
+
+output "migration_security_group_id" {
+  description = "Security group id used by release-orchestrated migration tasks."
+  value       = module.network.security_group_ids.migration
+}
+
+output "private_subnet_ids" {
+  description = "Private subnet ids used by release-orchestrated migration tasks."
+  value       = module.network.private_subnet_ids
 }
 
 output "simulator_task_definition_arn" {

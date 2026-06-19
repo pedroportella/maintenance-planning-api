@@ -10,6 +10,8 @@ dotnet test MaintenancePlanning.sln --no-restore --disable-build-servers -m:1 -p
 node scripts/quality-guards.mjs all
 node scripts/reviewer-evidence-smoke.mjs
 node scripts/terraform-validate.mjs
+node scripts/ecs-release-gate-tests.mjs
+npm run deploy:release-gate:dry-run
 node scripts/container-smoke.mjs
 node scripts/database-smoke.mjs
 ```
@@ -45,6 +47,17 @@ terraform -chdir=infra/aws plan -var-file=review.auto.tfvars
 ```
 
 Terraform defines infrastructure and task definitions only. It does not execute database migrations. The migration task should be run by release orchestration after the migration-runner image exists.
+
+## Migration Release Gate
+
+```bash
+node scripts/build-migration-bundle.mjs
+node scripts/migration-container-build.mjs
+node scripts/ecs-release-gate-tests.mjs
+npm run deploy:release-gate:dry-run
+```
+
+For a review deployment, push the API and migration-runner images, render task-definition JSON with exact image digests, then run [the migration release gate](release-gate.md). The gate runs the migration task in private subnets with public IP assignment disabled and updates the API service only after the named migration container exits successfully.
 
 After a review apply, check the load-balancer health and OpenAPI routes, then run protected API and simulator smokes only after runtime secrets have been populated. Destroy the review stack when it is no longer being used and confirm services, database, queues, logs and image repositories are no longer creating review spend.
 

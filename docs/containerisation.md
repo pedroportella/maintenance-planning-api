@@ -50,7 +50,7 @@ The default host port is `14333`. The API uses explicit environment variables fo
 Apply migrations explicitly before expecting database-backed readiness to pass:
 
 ```bash
-dotnet dotnet-ef database update --project src/MaintenancePlanning.Infrastructure/MaintenancePlanning.Infrastructure.csproj --startup-project src/MaintenancePlanning.Infrastructure/MaintenancePlanning.Infrastructure.csproj --context MaintenancePlanningDbContext
+dotnet dotnet-ef database update --project src/MaintenancePlanning.Infrastructure/MaintenancePlanning.Infrastructure.csproj --startup-project src/MaintenancePlanning.Api/MaintenancePlanning.Api.csproj --context MaintenancePlanningDbContext
 ```
 
 ## Restricted Smoke
@@ -80,6 +80,16 @@ Local development uses explicit local tags such as `maintenance-planning-api:loc
 CI and later release flows should use the source revision as an image tag and as OCI image metadata for traceability. Deployment should select an immutable image digest rather than relying on a mutable tag. Registry tag immutability is a useful supporting control, but the deployment identity should still be the digest.
 
 Avoid relying on an implicit `latest` tag.
+
+## Migration Runner Image
+
+The migration runner has a separate Dockerfile, [Dockerfile.migrations](../Dockerfile.migrations), and a separate build script:
+
+```bash
+node scripts/migration-container-build.mjs
+```
+
+The image contains an EF Core migration bundle and no API listener. It is intended for one-off ECS task execution through the [migration release gate](release-gate.md), not for API startup migrations.
 
 ## Secrets And Build Inputs
 

@@ -157,7 +157,7 @@ resource "aws_ecs_task_definition" "migration" {
 
   container_definitions = jsonencode([
     {
-      name                   = "migration"
+      name                   = "migration-runner"
       image                  = local.migration_image
       essential              = true
       user                   = "1654"

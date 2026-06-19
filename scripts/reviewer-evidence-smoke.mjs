@@ -14,6 +14,7 @@ const requiredFiles = [
   "docs/containerisation.md",
   "docs/event-contracts.md",
   "docs/production-next.md",
+  "docs/release-gate.md",
   "docs/reviewer-runbook.md",
   "docs/security-and-operations.md",
   "scripts/env-loader.mjs"
@@ -25,6 +26,7 @@ const requiredReadmeText = [
   "docs/aws-terraform.md",
   "docs/containerisation.md",
   "docs/event-contracts.md",
+  "docs/release-gate.md",
   "docs/production-next.md",
   "docs/reviewer-runbook.md",
   "docs/security-and-operations.md",

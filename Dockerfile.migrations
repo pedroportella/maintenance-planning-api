@@ -1,0 +1,51 @@
+ARG DOTNET_IMAGE_TAG=8.0-bookworm-slim
+
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_IMAGE_TAG} AS build
+WORKDIR /src
+
+COPY Directory.Build.props ./
+COPY .config/dotnet-tools.json .config/
+COPY src/MaintenancePlanning.Api/MaintenancePlanning.Api.csproj src/MaintenancePlanning.Api/
+COPY src/MaintenancePlanning.Application/MaintenancePlanning.Application.csproj src/MaintenancePlanning.Application/
+COPY src/MaintenancePlanning.Domain/MaintenancePlanning.Domain.csproj src/MaintenancePlanning.Domain/
+COPY src/MaintenancePlanning.Infrastructure/MaintenancePlanning.Infrastructure.csproj src/MaintenancePlanning.Infrastructure/
+
+RUN dotnet restore src/MaintenancePlanning.Api/MaintenancePlanning.Api.csproj
+RUN dotnet tool restore
+
+COPY src/ src/
+
+RUN dotnet build src/MaintenancePlanning.Api/MaintenancePlanning.Api.csproj \
+    --configuration Release \
+    --no-restore \
+    --disable-build-servers \
+    -m:1 \
+    /p:UseSharedCompilation=false
+
+RUN dotnet dotnet-ef migrations bundle \
+    --configuration Release \
+    --no-build \
+    --project src/MaintenancePlanning.Infrastructure/MaintenancePlanning.Infrastructure.csproj \
+    --startup-project src/MaintenancePlanning.Api/MaintenancePlanning.Api.csproj \
+    --context MaintenancePlanningDbContext \
+    --output /app/migration-runner/MaintenancePlanning.Migrations
+
+FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_IMAGE_TAG} AS runtime
+WORKDIR /app
+
+ARG IMAGE_REPOSITORY=maintenance-planning-migration-runner
+ARG VCS_REF=local
+
+LABEL org.opencontainers.image.title="Maintenance Planning Migration Runner" \
+      org.opencontainers.image.description="Review migration-runner image for synthetic maintenance-planning workflows." \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.source="${IMAGE_REPOSITORY}"
+
+ENV DOTNET_EnableDiagnostics=0
+
+COPY --from=build /app/migration-runner/MaintenancePlanning.Migrations ./MaintenancePlanning.Migrations
+RUN chmod 0555 /app/MaintenancePlanning.Migrations
+
+USER $APP_UID
+
+ENTRYPOINT ["/app/MaintenancePlanning.Migrations"]

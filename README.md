@@ -24,13 +24,14 @@ This is a prototype for review and learning. It does not connect to any employer
 - [Containerisation](docs/containerisation.md)
 - [Event contracts](docs/event-contracts.md)
 - [AWS and Terraform](docs/aws-terraform.md)
+- [Migration release gate](docs/release-gate.md)
 - [Security and operations](docs/security-and-operations.md)
 - [Reviewer runbook](docs/reviewer-runbook.md)
 - [Production-next](docs/production-next.md)
 
 ## Current State
 
-The repository now contains the initial .NET API, worker and test solution skeleton, a containerised API runtime path, SQL Server persistence through EF Core migrations, local HTTP import contracts for synthetic source-system-shaped work orders and maintenance events, planner work-order query routes, planning-run recommendation routes and Terraform review-infrastructure foundations. Implemented foundation capabilities include startup, liveness and readiness health endpoints, OpenAPI JSON, local bearer-token auth policies, command rate limiting, migration readiness reporting, idempotent import audit fields, deterministic package recommendations, planner decision audit rows, correlation ids, safe problem-details errors, structured console logging, graceful shutdown state, explicit local migrations, a restricted container smoke and Terraform validation.
+The repository now contains the initial .NET API, worker and test solution skeleton, a containerised API runtime path, SQL Server persistence through EF Core migrations, local HTTP import contracts for synthetic source-system-shaped work orders and maintenance events, planner work-order query routes, planning-run recommendation routes, Terraform review-infrastructure foundations and an ECS migration release-gate script. Implemented foundation capabilities include startup, liveness and readiness health endpoints, OpenAPI JSON, local bearer-token auth policies, command rate limiting, migration readiness reporting, idempotent import audit fields, deterministic package recommendations, planner decision audit rows, correlation ids, safe problem-details errors, structured console logging, graceful shutdown state, explicit local migrations, a restricted container smoke, Terraform validation and dry-run release-gate checks.
 
 ## Run Locally
 
@@ -66,7 +67,7 @@ docker compose --env-file .env.local --profile sqlserver up -d sqlserver
 set -a
 . ./.env.local
 set +a
-dotnet dotnet-ef database update --project src/MaintenancePlanning.Infrastructure/MaintenancePlanning.Infrastructure.csproj --startup-project src/MaintenancePlanning.Infrastructure/MaintenancePlanning.Infrastructure.csproj --context MaintenancePlanningDbContext
+dotnet dotnet-ef database update --project src/MaintenancePlanning.Infrastructure/MaintenancePlanning.Infrastructure.csproj --startup-project src/MaintenancePlanning.Api/MaintenancePlanning.Api.csproj --context MaintenancePlanningDbContext
 dotnet run --project src/MaintenancePlanning.Api/MaintenancePlanning.Api.csproj
 ```
 
@@ -80,6 +81,8 @@ dotnet test MaintenancePlanning.sln --no-restore --disable-build-servers -m:1 -p
 node scripts/quality-guards.mjs all
 node scripts/terraform-validate.mjs
 node scripts/reviewer-evidence-smoke.mjs
+node scripts/ecs-release-gate-tests.mjs
+npm run deploy:release-gate:dry-run
 node scripts/container-smoke.mjs
 node scripts/database-smoke.mjs
 ```

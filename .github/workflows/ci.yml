@@ -55,11 +55,26 @@ jobs:
       - name: Run reviewer evidence smoke
         run: node scripts/reviewer-evidence-smoke.mjs
 
+      - name: Build EF migration bundle
+        run: node scripts/build-migration-bundle.mjs
+
+      - name: Test ECS migration release gate parsing
+        run: node scripts/ecs-release-gate-tests.mjs
+
+      - name: Dry-run ECS migration release gate
+        run: npm run deploy:release-gate:dry-run
+
       - name: Build API container image
         env:
           IMAGE_NAME: maintenance-planning-api:${{ github.sha }}
           SOURCE_REVISION: ${{ github.sha }}
         run: node scripts/container-build.mjs
+
+      - name: Build migration-runner container image
+        env:
+          MIGRATION_IMAGE_NAME: maintenance-planning-migration-runner:${{ github.sha }}
+          SOURCE_REVISION: ${{ github.sha }}
+        run: node scripts/migration-container-build.mjs
 
       - name: Smoke API container image
         env:

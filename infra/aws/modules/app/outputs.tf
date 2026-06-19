@@ -10,6 +10,10 @@ output "api_task_definition_arn" {
   value = aws_ecs_task_definition.api.arn
 }
 
+output "api_service_name" {
+  value = aws_ecs_service.api.name
+}
+
 output "web_task_definition_arn" {
   value = var.enable_web_service ? aws_ecs_task_definition.web[0].arn : null
 }

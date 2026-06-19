@@ -1,0 +1,78 @@
+{
+  "family": "maintenance-planning-review-migration",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::000000000000:role/review-ecs-execution",
+  "taskRoleArn": "arn:aws:iam::000000000000:role/review-migration-task",
+  "runtimePlatform": {
+    "operatingSystemFamily": "LINUX",
+    "cpuArchitecture": "X86_64"
+  },
+  "volumes": [
+    {
+      "name": "migration-tmp"
+    }
+  ],
+  "containerDefinitions": [
+    {
+      "name": "migration-runner",
+      "image": "000000000000.dkr.ecr.ap-southeast-2.amazonaws.com/maintenance-planning-review-migration-runner@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "essential": true,
+      "user": "1654",
+      "readonlyRootFilesystem": true,
+      "linuxParameters": {
+        "initProcessEnabled": true,
+        "capabilities": {
+          "drop": ["ALL"]
+        }
+      },
+      "mountPoints": [
+        {
+          "sourceVolume": "migration-tmp",
+          "containerPath": "/tmp",
+          "readOnly": false
+        }
+      ],
+      "environment": [
+        {
+          "name": "DOTNET_EnableDiagnostics",
+          "value": "0"
+        },
+        {
+          "name": "MaintenancePlanning__Database__Enabled",
+          "value": "true"
+        },
+        {
+          "name": "SOURCE_REVISION",
+          "value": "example-revision"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "MaintenancePlanning__Database__Password",
+          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:000000000000:secret:review-migration-database-password"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/aws/ecs/maintenance-planning-review/migration",
+          "awslogs-region": "ap-southeast-2",
+          "awslogs-stream-prefix": "migration"
+        }
+      }
+    }
+  ],
+  "tags": [
+    {
+      "key": "release-id",
+      "value": "example-release"
+    },
+    {
+      "key": "source-revision",
+      "value": "example-revision"
+    }
+  ]
+}
