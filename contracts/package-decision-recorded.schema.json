@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://maintenance-planning.example/contracts/package-decision-recorded.schema.json",
+  "title": "Package Decision Recorded",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "sourceSystem",
+    "aggregateType",
+    "aggregateId",
+    "correlationId",
+    "occurredAt",
+    "recordedAt",
+    "idempotencyKey",
+    "payload"
+  ],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "eventType": { "const": "planning.package.decision-recorded" },
+    "schemaVersion": { "const": "1.0" },
+    "sourceSystem": { "const": "maintenance-planning-api" },
+    "aggregateType": { "const": "WorkOrderPackage" },
+    "aggregateId": { "type": "string", "format": "uuid" },
+    "correlationId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "recordedAt": { "type": "string", "format": "date-time" },
+    "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "packageId",
+        "planningRunId",
+        "packageNumber",
+        "packageStatus",
+        "decision",
+        "reasonCode",
+        "decidedBy",
+        "decidedAtUtc",
+        "decisionIds",
+        "workOrderIds"
+      ],
+      "properties": {
+        "packageId": { "type": "string", "format": "uuid" },
+        "planningRunId": { "type": "string", "format": "uuid" },
+        "packageNumber": { "type": "string", "minLength": 1 },
+        "packageStatus": { "enum": ["Accepted", "Rejected", "Deferred"] },
+        "decision": { "enum": ["Accepted", "Rejected", "Deferred"] },
+        "reasonCode": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "decidedBy": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "decidedAtUtc": { "type": "string", "format": "date-time" },
+        "decisionIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "format": "uuid" }
+        },
+        "workOrderIds": {
+          "type": "array",
+          "items": { "type": "string", "format": "uuid" }
+        }
+      }
+    }
+  }
+}

@@ -44,8 +44,16 @@ locals {
       value = var.work_queue_url
     },
     {
+      name  = "MaintenancePlanning__Eventing__QueueArn"
+      value = var.work_queue_arn
+    },
+    {
       name  = "MaintenancePlanning__Eventing__DeadLetterQueueUrl"
       value = var.work_dlq_url
+    },
+    {
+      name  = "MaintenancePlanning__Eventing__DeadLetterQueueArn"
+      value = var.work_dlq_arn
     },
     {
       name  = "MaintenancePlanning__Eventing__Region"

@@ -234,17 +234,6 @@ variable "web_backend_api_url" {
   }
 }
 
-variable "simulator_api_url" {
-  description = "API URL used by optional simulator tasks."
-  type        = string
-  default     = null
-
-  validation {
-    condition     = var.simulator_api_url == null || can(regex("^https?://", var.simulator_api_url))
-    error_message = "simulator_api_url must be an absolute HTTP or HTTPS URL."
-  }
-}
-
 variable "database_engine" {
   description = "RDS engine for the review database."
   type        = string

@@ -74,7 +74,15 @@ variable "work_queue_url" {
   type = string
 }
 
+variable "work_queue_arn" {
+  type = string
+}
+
 variable "work_dlq_url" {
+  type = string
+}
+
+variable "work_dlq_arn" {
   type = string
 }
 

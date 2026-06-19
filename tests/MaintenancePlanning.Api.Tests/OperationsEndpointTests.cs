@@ -1,5 +1,9 @@
 using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json;
+using MaintenancePlanning.Api.Security;
+using MaintenancePlanning.Application.Eventing;
 using MaintenancePlanning.Application.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -59,6 +63,45 @@ public sealed class OperationsEndpointTests
         Assert.Equal(0, document.RootElement.GetProperty("eventing").GetProperty("deadLetterCount").GetInt32());
     }
 
+    [Fact]
+    public async Task DeadLetterReplay_StartsReplay_WhenOperationsTokenIsProvided()
+    {
+        await using var host = await TestApiHost.StartAsync(builder =>
+        {
+            builder.Services.AddSingleton<IDeadLetterReplayService>(new SuccessfulReplayService());
+        });
+
+        var response = await host.Client.PostAsJsonAsync(
+            "/api/v1/operations/eventing/dead-letter-replays",
+            new StartDeadLetterReplayRequest
+            {
+                ReasonCode = "review-dlq-retry",
+                RequestedBy = "operations-review"
+            });
+        var replay = await response.Content.ReadFromJsonAsync<DeadLetterReplayResult>();
+
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        Assert.NotNull(replay);
+        Assert.Equal("started", replay.Status);
+        Assert.Equal("review-dlq-retry", replay.ReasonCode);
+    }
+
+    [Fact]
+    public async Task DeadLetterReplay_ReturnsForbidden_WhenPlannerTokenIsProvided()
+    {
+        await using var host = await TestApiHost.StartAsync(authenticated: false);
+        host.Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", TestTokenNames.Planner);
+
+        var response = await host.Client.PostAsJsonAsync(
+            "/api/v1/operations/eventing/dead-letter-replays",
+            new StartDeadLetterReplayRequest
+            {
+                ReasonCode = "review-dlq-retry"
+            });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
     private sealed class PendingMigrationReporter : IMigrationReadinessReporter
     {
         public Task<MigrationReadinessReport> CheckAsync(CancellationToken cancellationToken)
@@ -74,6 +117,24 @@ public sealed class OperationsEndpointTests
                 LatestAppliedMigration: null,
                 IssueCode: "pending-migrations",
                 CheckedAtUtc: DateTimeOffset.UnixEpoch));
+        }
+    }
+
+    private sealed class SuccessfulReplayService : IDeadLetterReplayService
+    {
+        public Task<DeadLetterReplayOutcome> StartReplayAsync(
+            StartDeadLetterReplayRequest request,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(DeadLetterReplayOutcome.Success(new DeadLetterReplayResult(
+                Guid.NewGuid(),
+                "started",
+                "replay-task-1",
+                "arn:aws:sqs:ap-southeast-2:000000000000:review-work-dlq",
+                "arn:aws:sqs:ap-southeast-2:000000000000:review-work",
+                request.ReasonCode,
+                request.RequestedBy ?? "local-review",
+                DateTimeOffset.UnixEpoch)));
         }
     }
 }

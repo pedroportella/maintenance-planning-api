@@ -63,6 +63,8 @@ public static class ApiApplication
 
         builder.Services.AddScoped<IImportService, ImportService>();
         builder.Services.AddScoped<IEventIngestionService, EventIngestionService>();
+        builder.Services.AddScoped<IOutboxDispatcher, OutboxDispatcher>();
+        builder.Services.AddScoped<IDeadLetterReplayService, DeadLetterReplayService>();
         builder.Services.AddScoped<IPlanningService, PlanningService>();
         builder.Services.AddInfrastructureServices(builder.Configuration);
         builder.Services

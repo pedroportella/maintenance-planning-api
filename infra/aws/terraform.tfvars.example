@@ -16,7 +16,6 @@ enable_vpc_endpoints = false
 
 web_data_mode        = "mock"
 web_backend_api_url  = null
-simulator_api_url    = null
 
 worker_database_username = "maintenance_worker"
 

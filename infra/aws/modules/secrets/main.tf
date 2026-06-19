@@ -3,7 +3,6 @@ locals {
     api_database_password       = "${var.name_prefix}/api/database-password"
     migration_database_password = "${var.name_prefix}/migration/database-password"
     worker_database_password    = "${var.name_prefix}/worker/database-password"
-    simulator_api_token         = "${var.name_prefix}/simulator/api-token"
   }
 }
 

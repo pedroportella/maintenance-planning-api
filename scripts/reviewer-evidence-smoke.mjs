@@ -13,10 +13,14 @@ const requiredFiles = [
   "docs/aws-terraform.md",
   "docs/containerisation.md",
   "docs/event-contracts.md",
+  "docs/outbound-events.asyncapi.json",
   "docs/production-next.md",
   "docs/release-gate.md",
   "docs/reviewer-runbook.md",
   "docs/security-and-operations.md",
+  "contracts/planning-run-completed.schema.json",
+  "contracts/package-decision-recorded.schema.json",
+  "scripts/event-contract-smoke.mjs",
   "scripts/env-loader.mjs"
 ];
 

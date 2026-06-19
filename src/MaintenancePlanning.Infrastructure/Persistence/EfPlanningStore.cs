@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using MaintenancePlanning.Application.Planning;
 using MaintenancePlanning.Domain.Planning;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +8,16 @@ namespace MaintenancePlanning.Infrastructure.Persistence;
 
 internal sealed class EfPlanningStore(MaintenancePlanningDbContext dbContext) : IPlanningStore
 {
+    private const string OutboundSourceSystem = "maintenance-planning-api";
+    private const string OutboundSchemaVersion = "1.0";
+    private const string PlanningRunCompletedEventType = "planning.run.completed";
+    private const string PackageDecisionRecordedEventType = "planning.package.decision-recorded";
+
+    private static readonly JsonSerializerOptions OutboxJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
     public bool IsConfigured => true;
 
     public async Task<PlanningCandidateSnapshot> LoadCandidateSnapshotAsync(
@@ -67,6 +79,10 @@ internal sealed class EfPlanningStore(MaintenancePlanningDbContext dbContext) : 
         {
             await dbContext.PackageItems.AddAsync(packageItem, cancellationToken);
         }
+
+        await dbContext.OutboxEvents.AddAsync(
+            CreatePlanningRunCompletedEvent(planningRun, packages, packageItems),
+            cancellationToken);
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }
@@ -201,6 +217,9 @@ internal sealed class EfPlanningStore(MaintenancePlanningDbContext dbContext) : 
         }
 
         await dbContext.PlannerDecisions.AddRangeAsync(decisionEntities, cancellationToken);
+        await dbContext.OutboxEvents.AddAsync(
+            CreatePackageDecisionRecordedEvent(package, decision, reasonCode, decidedBy, decidedAtUtc, decisionEntities),
+            cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return decisionEntities.Select(ToStoredDecision).ToArray();
@@ -386,6 +405,110 @@ internal sealed class EfPlanningStore(MaintenancePlanningDbContext dbContext) : 
             PlannerDecisionType.Rejected => PackageStatus.Rejected,
             PlannerDecisionType.Deferred => PackageStatus.Deferred,
             _ => PackageStatus.Recommended
+        };
+    }
+
+    private static OutboxEvent CreatePlanningRunCompletedEvent(
+        PlanningRun planningRun,
+        IReadOnlyList<WorkOrderPackage> packages,
+        IReadOnlyList<PackageItem> packageItems)
+    {
+        var occurredAtUtc = planningRun.CompletedAtUtc ?? planningRun.StartedAtUtc;
+        var payload = new
+        {
+            planningRunId = planningRun.Id,
+            planningRun.RunNumber,
+            status = planningRun.Status.ToString(),
+            planningRun.Horizon,
+            planningRun.HorizonStartUtc,
+            planningRun.HorizonEndUtc,
+            planningRun.StartedAtUtc,
+            planningRun.CompletedAtUtc,
+            planningRun.RequestedBy,
+            recommendationCount = packages.Count,
+            workOrderCount = packageItems.Select(item => item.WorkOrderId).Distinct().Count()
+        };
+
+        return CreateOutboxEvent(
+            PlanningRunCompletedEventType,
+            "PlanningRun",
+            planningRun.Id,
+            occurredAtUtc,
+            $"planning-run:{planningRun.Id:N}:completed",
+            payload);
+    }
+
+    private static OutboxEvent CreatePackageDecisionRecordedEvent(
+        WorkOrderPackage package,
+        PlannerDecisionType decision,
+        string reasonCode,
+        string decidedBy,
+        DateTimeOffset decidedAtUtc,
+        IReadOnlyList<PlannerDecision> decisions)
+    {
+        var firstDecisionId = decisions.OrderBy(item => item.Id).First().Id;
+        var payload = new
+        {
+            packageId = package.Id,
+            package.PlanningRunId,
+            package.PackageNumber,
+            packageStatus = package.Status.ToString(),
+            decision = decision.ToString(),
+            reasonCode,
+            decidedBy,
+            decidedAtUtc,
+            decisionIds = decisions.Select(item => item.Id).OrderBy(item => item).ToArray(),
+            workOrderIds = decisions
+                .Where(item => item.WorkOrderId is not null)
+                .Select(item => item.WorkOrderId!.Value)
+                .OrderBy(item => item)
+                .ToArray()
+        };
+
+        return CreateOutboxEvent(
+            PackageDecisionRecordedEventType,
+            "WorkOrderPackage",
+            package.Id,
+            decidedAtUtc,
+            $"package:{package.Id:N}:decision:{firstDecisionId:N}",
+            payload);
+    }
+
+    private static OutboxEvent CreateOutboxEvent(
+        string eventType,
+        string aggregateType,
+        Guid aggregateId,
+        DateTimeOffset occurredAtUtc,
+        string idempotencyKey,
+        object payload)
+    {
+        var eventId = Guid.NewGuid();
+        var envelope = new
+        {
+            eventId,
+            eventType,
+            schemaVersion = OutboundSchemaVersion,
+            sourceSystem = OutboundSourceSystem,
+            aggregateType,
+            aggregateId,
+            correlationId = idempotencyKey,
+            occurredAt = occurredAtUtc,
+            recordedAt = DateTimeOffset.UtcNow,
+            idempotencyKey,
+            payload
+        };
+
+        return new OutboxEvent
+        {
+            Id = eventId,
+            EventType = eventType,
+            AggregateType = aggregateType,
+            AggregateId = aggregateId,
+            PayloadJson = JsonSerializer.Serialize(envelope, OutboxJsonOptions),
+            Status = OutboxEventStatus.Pending,
+            AttemptCount = 0,
+            CreatedAtUtc = occurredAtUtc,
+            AvailableAtUtc = occurredAtUtc
         };
     }
 }

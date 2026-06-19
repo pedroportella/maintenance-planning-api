@@ -78,10 +78,6 @@ variable "worker_database_secret_arn" {
   type = string
 }
 
-variable "simulator_api_token_secret_arn" {
-  type = string
-}
-
 variable "database_address" {
   type = string
 }
@@ -111,10 +107,6 @@ variable "enable_simulator_schedule" {
 }
 
 variable "simulator_schedule_expression" {
-  type = string
-}
-
-variable "simulator_api_url" {
   type = string
 }
 

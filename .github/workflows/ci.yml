@@ -55,6 +55,9 @@ jobs:
       - name: Run reviewer evidence smoke
         run: node scripts/reviewer-evidence-smoke.mjs
 
+      - name: Validate event contracts
+        run: node scripts/event-contract-smoke.mjs
+
       - name: Build EF migration bundle
         run: node scripts/build-migration-bundle.mjs
 

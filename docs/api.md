@@ -10,6 +10,7 @@ HTTP surface:
 - `POST /api/v1/imports/source-work-orders`
 - `POST /api/v1/imports/maintenance-events`
 - `GET /api/v1/operations/posture`
+- `POST /api/v1/operations/eventing/dead-letter-replays`
 - `GET /api/v1/work-orders`
 - `GET /api/v1/work-orders/{id}`
 - `POST /api/v1/planning-runs`
@@ -22,6 +23,18 @@ Errors should use `application/problem+json` with a correlation identifier.
 `GET /api/v1/operations/migration-readiness` reports whether SQL Server is configured, reachable and up to date with EF Core migrations. It does not apply migrations.
 
 `GET /api/v1/operations/posture` reports whether import persistence is configured and, when available, the latest import freshness summary. When eventing is configured, it also reports approximate work-queue and dead-letter counts plus the latest queued-event ingestion failure code recorded in import audit.
+
+`POST /api/v1/operations/eventing/dead-letter-replays` starts a dead-letter queue replay command when eventing and replay audit storage are configured. It requires operations role or scope and records an audit row before returning `202 Accepted`:
+
+```json
+{
+  "reasonCode": "review-dlq-retry",
+  "requestedBy": "operations-review",
+  "maxMessagesPerSecond": 5
+}
+```
+
+The response includes a replay task handle, source queue ARN, destination queue ARN and replay audit id. It does not expose message bodies or credentials.
 
 ## Authentication
 
@@ -132,3 +145,5 @@ Planning endpoints require database persistence to be configured. When persisten
 ```
 
 Allowed decision values are `Accepted`, `Rejected` and `Deferred`. A decision updates package status and records one or more decision audit rows. Invalid decision payloads return `422`.
+
+Planning run completion and package decisions also create outbound domain-event outbox records in the same database transaction. The worker dispatches those records to the configured EventBridge bus when outbound publishing is enabled.

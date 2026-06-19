@@ -1,6 +1,6 @@
 # Reviewer Runbook
 
-Current state: .NET API and event ingestion worker with health endpoints, OpenAPI JSON, safe errors, tests, SQL Server persistence through EF Core migrations, local HTTP import contracts for synthetic source-system-shaped events, planner work-order query routes, local review auth policies, command rate limiting, EventBridge/SQS review wiring, a simulator EventBridge publish task definition and containerised API, worker and migration-runner runtime paths.
+Current state: .NET API and event ingestion/outbox worker with health endpoints, OpenAPI JSON, safe errors, tests, SQL Server persistence through EF Core migrations, local HTTP import contracts for synthetic source-system-shaped events, planner work-order query routes, local review auth policies, command rate limiting, operations-protected dead-letter replay, EventBridge/SQS review wiring, outbound EventBridge dispatch, a simulator EventBridge publish task definition and containerised API, worker and migration-runner runtime paths.
 
 ## Local Checks
 
@@ -9,6 +9,7 @@ dotnet format MaintenancePlanning.sln --verify-no-changes --no-restore
 dotnet test MaintenancePlanning.sln --no-restore --disable-build-servers -m:1 -p:UseSharedCompilation=false
 node scripts/quality-guards.mjs all
 node scripts/reviewer-evidence-smoke.mjs
+node scripts/event-contract-smoke.mjs
 node scripts/terraform-validate.mjs
 node scripts/ecs-release-gate-tests.mjs
 npm run deploy:release-gate:dry-run
@@ -53,7 +54,7 @@ terraform -chdir=infra/aws init -backend-config=backend.hcl
 terraform -chdir=infra/aws plan -var-file=review.auto.tfvars
 ```
 
-Terraform defines infrastructure and task definitions only. It does not execute database migrations. The migration task should be run by release orchestration after the migration-runner image exists. EventBridge, SQS, the dead-letter queue, the worker service definition and the simulator publish task are provisioned for review, but a live synthetic event publish has not been run from this repository state.
+Terraform defines infrastructure and task definitions only. It does not execute database migrations. The migration task should be run by release orchestration after the migration-runner image exists. EventBridge, SQS, the dead-letter queue, the worker service definition, outbound dispatch permissions and the simulator publish task are provisioned for review, but live synthetic event publish, dead-letter replay and outbound publish smokes have not been run from this repository state.
 
 ## Migration Release Gate
 

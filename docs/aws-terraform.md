@@ -13,8 +13,10 @@ The review shape includes:
 - one-off task definitions for migration, simulator EventBridge publish and worker workloads;
 - an application load balancer with API path routing and optional HTTPS/WAF inputs;
 - RDS SQL Server with encrypted storage, private networking and RDS-managed master password;
-- Secrets Manager placeholders for runtime database passwords and optional simulator API token values;
+- Secrets Manager placeholders for runtime database passwords;
 - EventBridge, SQS and DLQ resources for the synthetic event path;
+- API task permissions for queue posture and operations-controlled dead-letter replay;
+- worker task permissions for inbound SQS consumption and outbound EventBridge publishing;
 - CloudWatch log groups and an optional budget alert.
 
 All resources carry these tags:
@@ -145,4 +147,4 @@ Post-destroy checks:
 - Application and migration database users still need a controlled credential creation and rotation path.
 - Review deployment has not been applied or smoked from this repository state.
 - Task-definition JSON rendering in a real pipeline still needs to be wired to the chosen image push process.
-- A live simulator AWS publish and deployed event smoke have not been run from this repository state; the inbound worker and messaging resources are present so IAM, queues, logs and operations posture have a stable target.
+- A live simulator AWS publish, deployed inbound event smoke, dead-letter replay command and outbound EventBridge publish have not been run from this repository state; the worker and messaging resources are present so IAM, queues, logs and operations posture have a stable target.

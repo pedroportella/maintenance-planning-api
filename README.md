@@ -10,12 +10,13 @@ This repository will contain a .NET API and worker service for synthetic mainten
 - SQL Server persistence through EF Core;
 - idempotent imports and event processing;
 - planning runs and explainable work-order package recommendations;
+- outbound planning events through a transactional outbox;
 - operations posture, health/readiness and safe API errors;
 - Terraform-managed AWS review infrastructure.
 
 ## Boundary
 
-This is a prototype for review and learning. It does not connect to any employer, client or production source system. All data is synthetic, and production concerns such as enterprise identity, high availability, formal security assurance and production support remain production-next work unless explicitly implemented.
+This is a prototype for review and learning. It does not connect to any employer, client or production source system. All data is synthetic, and controls such as enterprise identity, resilience engineering, independent security review and operational ownership remain production-next work unless explicitly implemented.
 
 ## Start Here
 
@@ -31,7 +32,7 @@ This is a prototype for review and learning. It does not connect to any employer
 
 ## Current State
 
-The repository now contains the initial .NET API, event ingestion worker and test solution, containerised API and worker runtime paths, SQL Server persistence through EF Core migrations, local HTTP import contracts for synthetic source-system-shaped work orders and maintenance events, planner work-order query routes, planning-run recommendation routes, Terraform review-infrastructure foundations and an ECS migration release-gate script. Implemented foundation capabilities include startup, liveness and readiness health endpoints, OpenAPI JSON, local bearer-token auth policies, command rate limiting, migration readiness reporting, idempotent import and queued-event audit fields, deterministic package recommendations, planner decision audit rows, EventBridge-to-SQS review wiring, queue and dead-letter posture reporting, correlation ids, safe problem-details errors, structured console logging, graceful shutdown state, explicit local migrations, restricted container smoke, Terraform validation and dry-run release-gate checks.
+The repository now contains the initial .NET API, event ingestion and outbox dispatch worker, containerised API and worker runtime paths, SQL Server persistence through EF Core migrations, local HTTP import contracts for synthetic source-system-shaped work orders and maintenance events, planner work-order query routes, planning-run recommendation routes, Terraform review-infrastructure foundations and an ECS migration release-gate script. Implemented foundation capabilities include startup, liveness and readiness health endpoints, OpenAPI JSON, local bearer-token auth policies, command rate limiting, migration readiness reporting, idempotent import and queued-event audit fields, deterministic package recommendations, planner decision audit rows, transactional outbound event outbox records, operations-protected dead-letter replay, EventBridge-to-SQS review wiring, queue and dead-letter posture reporting, correlation ids, safe problem-details errors, structured console logging, graceful shutdown state, explicit local migrations, restricted container smoke, Terraform validation and dry-run release-gate checks.
 
 ## Run Locally
 
@@ -47,6 +48,7 @@ Useful local endpoints:
 - `GET /openapi/v1.json`
 - `GET /api/v1/operations/migration-readiness`
 - `GET /api/v1/operations/posture`
+- `POST /api/v1/operations/eventing/dead-letter-replays`
 - `GET /api/v1/work-orders`
 - `GET /api/v1/work-orders/{id}`
 - `POST /api/v1/imports/source-work-orders`
@@ -81,6 +83,7 @@ dotnet test MaintenancePlanning.sln --no-restore --disable-build-servers -m:1 -p
 node scripts/quality-guards.mjs all
 node scripts/terraform-validate.mjs
 node scripts/reviewer-evidence-smoke.mjs
+node scripts/event-contract-smoke.mjs
 node scripts/ecs-release-gate-tests.mjs
 npm run deploy:release-gate:dry-run
 node scripts/container-smoke.mjs

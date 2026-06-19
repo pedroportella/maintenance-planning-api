@@ -85,6 +85,21 @@ data "aws_iam_policy_document" "api_eventing_read" {
     actions   = ["sqs:GetQueueAttributes"]
     resources = [var.work_queue_arn, var.work_dlq_arn]
   }
+
+  statement {
+    actions = [
+      "sqs:DeleteMessage",
+      "sqs:GetQueueAttributes",
+      "sqs:ReceiveMessage",
+      "sqs:StartMessageMoveTask"
+    ]
+    resources = [var.work_dlq_arn]
+  }
+
+  statement {
+    actions   = ["sqs:SendMessage"]
+    resources = [var.work_queue_arn]
+  }
 }
 
 resource "aws_iam_policy" "api_eventing_read" {
@@ -122,6 +137,23 @@ resource "aws_iam_policy" "worker_messages" {
 resource "aws_iam_role_policy_attachment" "worker_messages" {
   role       = aws_iam_role.worker_task.name
   policy_arn = aws_iam_policy.worker_messages.arn
+}
+
+data "aws_iam_policy_document" "worker_outbound_events" {
+  statement {
+    actions   = ["events:PutEvents"]
+    resources = [var.event_bus_arn]
+  }
+}
+
+resource "aws_iam_policy" "worker_outbound_events" {
+  name   = "${var.name_prefix}-worker-outbound-events"
+  policy = data.aws_iam_policy_document.worker_outbound_events.json
+}
+
+resource "aws_iam_role_policy_attachment" "worker_outbound_events" {
+  role       = aws_iam_role.worker_task.name
+  policy_arn = aws_iam_policy.worker_outbound_events.arn
 }
 
 data "aws_iam_policy_document" "simulator_events" {

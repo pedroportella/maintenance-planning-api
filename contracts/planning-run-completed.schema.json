@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://maintenance-planning.example/contracts/planning-run-completed.schema.json",
+  "title": "Planning Run Completed",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "sourceSystem",
+    "aggregateType",
+    "aggregateId",
+    "correlationId",
+    "occurredAt",
+    "recordedAt",
+    "idempotencyKey",
+    "payload"
+  ],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "eventType": { "const": "planning.run.completed" },
+    "schemaVersion": { "const": "1.0" },
+    "sourceSystem": { "const": "maintenance-planning-api" },
+    "aggregateType": { "const": "PlanningRun" },
+    "aggregateId": { "type": "string", "format": "uuid" },
+    "correlationId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "recordedAt": { "type": "string", "format": "date-time" },
+    "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "planningRunId",
+        "runNumber",
+        "status",
+        "horizon",
+        "horizonStartUtc",
+        "horizonEndUtc",
+        "startedAtUtc",
+        "requestedBy",
+        "recommendationCount",
+        "workOrderCount"
+      ],
+      "properties": {
+        "planningRunId": { "type": "string", "format": "uuid" },
+        "runNumber": { "type": "string", "minLength": 1 },
+        "status": { "const": "Completed" },
+        "horizon": { "type": "string", "minLength": 1 },
+        "horizonStartUtc": { "type": "string", "format": "date-time" },
+        "horizonEndUtc": { "type": "string", "format": "date-time" },
+        "startedAtUtc": { "type": "string", "format": "date-time" },
+        "completedAtUtc": { "type": ["string", "null"], "format": "date-time" },
+        "requestedBy": { "type": "string", "minLength": 1 },
+        "recommendationCount": { "type": "integer", "minimum": 0 },
+        "workOrderCount": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

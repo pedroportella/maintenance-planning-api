@@ -1,4 +1,5 @@
 using Amazon;
+using Amazon.EventBridge;
 using Amazon.SQS;
 using MaintenancePlanning.Application.Eventing;
 using MaintenancePlanning.Application.Persistence;
@@ -48,6 +49,7 @@ public static class DependencyInjection
 
             services.AddScoped<IMigrationReadinessReporter, DbMigrationReadinessReporter>();
             services.AddScoped<IImportStore, EfImportStore>();
+            services.AddScoped<IOutboxStore, EfOutboxStore>();
             services.AddScoped<IPlanningStore, EfPlanningStore>();
             services.TryAddSingleton<IReadinessProbe, DatabaseReadinessProbe>();
         }
@@ -55,13 +57,18 @@ public static class DependencyInjection
         {
             services.TryAddSingleton<IMigrationReadinessReporter, UnconfiguredMigrationReadinessReporter>();
             services.TryAddSingleton<IImportStore, UnavailableImportStore>();
+            services.TryAddSingleton<IOutboxStore, UnavailableOutboxStore>();
             services.TryAddSingleton<IPlanningStore, UnavailablePlanningStore>();
             services.TryAddSingleton<IReadinessProbe, NoExternalDependencyReadinessProbe>();
         }
 
-        if (eventingOptions.IsConfigured)
+        if (eventingOptions.IsConfigured || eventingOptions.IsDeadLetterReplayConfigured)
         {
             services.AddSingleton<IAmazonSQS>(_ => CreateSqsClient(eventingOptions));
+        }
+
+        if (eventingOptions.IsConfigured)
+        {
             services.TryAddSingleton<IEventQueueClient, SqsEventQueueClient>();
             services.TryAddSingleton<IEventingPostureReporter, SqsEventingPostureReporter>();
         }
@@ -69,6 +76,25 @@ public static class DependencyInjection
         {
             services.TryAddSingleton<IEventQueueClient, UnavailableEventQueueClient>();
             services.TryAddSingleton<IEventingPostureReporter, UnavailableEventingPostureReporter>();
+        }
+
+        if (eventingOptions.IsDeadLetterReplayConfigured)
+        {
+            services.TryAddSingleton<IDeadLetterReplayClient, SqsDeadLetterReplayClient>();
+        }
+        else
+        {
+            services.TryAddSingleton<IDeadLetterReplayClient, UnavailableDeadLetterReplayClient>();
+        }
+
+        if (eventingOptions.IsOutboundConfigured)
+        {
+            services.AddSingleton<IAmazonEventBridge>(_ => CreateEventBridgeClient(eventingOptions));
+            services.TryAddSingleton<IOutboundEventPublisher, EventBridgeOutboundEventPublisher>();
+        }
+        else
+        {
+            services.TryAddSingleton<IOutboundEventPublisher, UnavailableOutboundEventPublisher>();
         }
 
         return services;
@@ -79,5 +105,12 @@ public static class DependencyInjection
         return string.IsNullOrWhiteSpace(options.Region)
             ? new AmazonSQSClient()
             : new AmazonSQSClient(RegionEndpoint.GetBySystemName(options.Region));
+    }
+
+    private static IAmazonEventBridge CreateEventBridgeClient(MaintenancePlanningEventingOptions options)
+    {
+        return string.IsNullOrWhiteSpace(options.Region)
+            ? new AmazonEventBridgeClient()
+            : new AmazonEventBridgeClient(RegionEndpoint.GetBySystemName(options.Region));
     }
 }

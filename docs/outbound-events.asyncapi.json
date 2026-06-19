@@ -1,0 +1,64 @@
+{
+  "asyncapi": "3.0.0",
+  "info": {
+    "title": "Maintenance Planning API Outbound Events",
+    "version": "1.0.0",
+    "description": "Review contract for synthetic maintenance-planning domain events published by the API worker outbox dispatcher."
+  },
+  "defaultContentType": "application/json",
+  "channels": {
+    "maintenancePlanningOutbound": {
+      "address": "maintenance-planning-api/outbound",
+      "messages": {
+        "planningRunCompleted": {
+          "$ref": "#/components/messages/planningRunCompleted"
+        },
+        "packageDecisionRecorded": {
+          "$ref": "#/components/messages/packageDecisionRecorded"
+        }
+      }
+    }
+  },
+  "operations": {
+    "publishPlanningRunCompleted": {
+      "action": "send",
+      "channel": {
+        "$ref": "#/channels/maintenancePlanningOutbound"
+      },
+      "messages": [
+        {
+          "$ref": "#/components/messages/planningRunCompleted"
+        }
+      ]
+    },
+    "publishPackageDecisionRecorded": {
+      "action": "send",
+      "channel": {
+        "$ref": "#/channels/maintenancePlanningOutbound"
+      },
+      "messages": [
+        {
+          "$ref": "#/components/messages/packageDecisionRecorded"
+        }
+      ]
+    }
+  },
+  "components": {
+    "messages": {
+      "planningRunCompleted": {
+        "name": "planning.run.completed",
+        "title": "Planning run completed",
+        "payload": {
+          "$ref": "../contracts/planning-run-completed.schema.json"
+        }
+      },
+      "packageDecisionRecorded": {
+        "name": "planning.package.decision-recorded",
+        "title": "Package decision recorded",
+        "payload": {
+          "$ref": "../contracts/package-decision-recorded.schema.json"
+        }
+      }
+    }
+  }
+}

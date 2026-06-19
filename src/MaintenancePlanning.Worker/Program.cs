@@ -23,6 +23,8 @@ builder.Services.Configure<HostOptions>(options =>
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddScoped<IImportService, ImportService>();
 builder.Services.AddScoped<IEventIngestionService, EventIngestionService>();
+builder.Services.AddScoped<IOutboxDispatcher, OutboxDispatcher>();
 builder.Services.AddHostedService<EventIngestionWorker>();
+builder.Services.AddHostedService<OutboxDispatchWorker>();
 
 await builder.Build().RunAsync();
