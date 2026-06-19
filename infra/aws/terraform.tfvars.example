@@ -1,0 +1,21 @@
+aws_region  = "ap-southeast-2"
+project     = "maintenance-planning-prototype"
+owner       = "pedro"
+environment = "review"
+
+api_image_digest       = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+web_image_digest       = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+simulator_image_digest = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+worker_image_digest    = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+migration_image_digest = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+allowed_http_cidr_blocks = ["0.0.0.0/0"]
+
+enable_nat_gateway   = false
+enable_vpc_endpoints = false
+
+web_data_mode        = "mock"
+web_backend_api_url  = null
+simulator_api_url    = null
+
+budget_alert_emails = ["replace-with-review-alert-email@example.com"]

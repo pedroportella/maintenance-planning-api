@@ -48,6 +48,10 @@ data/
 terraform.tfstate
 terraform.tfstate.*
 *.tfplan
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+infra/aws/backend.hcl
 crash.log
 override.tf
 override.tf.json

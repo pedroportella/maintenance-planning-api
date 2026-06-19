@@ -32,8 +32,16 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+
       - name: Restore .NET solution
         run: dotnet restore MaintenancePlanning.sln
+
+      - name: Validate Terraform
+        run: node scripts/terraform-validate.mjs
 
       - name: Check .NET formatting
         run: dotnet format MaintenancePlanning.sln --verify-no-changes --no-restore

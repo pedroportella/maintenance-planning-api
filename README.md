@@ -30,7 +30,7 @@ This is a prototype for review and learning. It does not connect to any employer
 
 ## Current State
 
-The repository now contains the initial .NET API, worker and test solution skeleton, a containerised API runtime path, SQL Server persistence through EF Core migrations, local HTTP import contracts for synthetic source-system-shaped work orders and maintenance events, planner work-order query routes, and planning-run recommendation routes. Implemented foundation capabilities include startup, liveness and readiness health endpoints, OpenAPI JSON, local bearer-token auth policies, command rate limiting, migration readiness reporting, idempotent import audit fields, deterministic package recommendations, planner decision audit rows, correlation ids, safe problem-details errors, structured console logging, graceful shutdown state, explicit local migrations and a restricted container smoke.
+The repository now contains the initial .NET API, worker and test solution skeleton, a containerised API runtime path, SQL Server persistence through EF Core migrations, local HTTP import contracts for synthetic source-system-shaped work orders and maintenance events, planner work-order query routes, planning-run recommendation routes and Terraform review-infrastructure foundations. Implemented foundation capabilities include startup, liveness and readiness health endpoints, OpenAPI JSON, local bearer-token auth policies, command rate limiting, migration readiness reporting, idempotent import audit fields, deterministic package recommendations, planner decision audit rows, correlation ids, safe problem-details errors, structured console logging, graceful shutdown state, explicit local migrations, a restricted container smoke and Terraform validation.
 
 ## Run Locally
 
@@ -78,6 +78,7 @@ The API reports pending migrations but does not apply schema changes during star
 dotnet format MaintenancePlanning.sln --verify-no-changes --no-restore
 dotnet test MaintenancePlanning.sln --no-restore --disable-build-servers -m:1 -p:UseSharedCompilation=false
 node scripts/quality-guards.mjs all
+node scripts/terraform-validate.mjs
 node scripts/reviewer-evidence-smoke.mjs
 node scripts/container-smoke.mjs
 node scripts/database-smoke.mjs

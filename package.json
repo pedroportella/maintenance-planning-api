@@ -13,6 +13,7 @@
     "guard:artifacts": "node scripts/quality-guards.mjs artifacts",
     "guard:public-docs": "node scripts/quality-guards.mjs public-docs",
     "guard:secrets": "node scripts/quality-guards.mjs secrets",
+    "infra:validate": "node scripts/terraform-validate.mjs",
     "test:reviewer-evidence": "node scripts/reviewer-evidence-smoke.mjs",
     "verify": "node scripts/quality-guards.mjs all && node scripts/reviewer-evidence-smoke.mjs"
   },
