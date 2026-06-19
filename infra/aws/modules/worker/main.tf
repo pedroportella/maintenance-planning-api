@@ -89,20 +89,16 @@ locals {
     }
   ]
 
-  simulator_environment = concat(
-    [
-      {
-        name  = "SIMULATOR_EVENT_BUS_NAME"
-        value = var.event_bus_name
-      }
-    ],
-    var.simulator_api_url == null ? [] : [
-      {
-        name  = "SIMULATOR_API_URL"
-        value = var.simulator_api_url
-      }
-    ]
-  )
+  simulator_environment = [
+    {
+      name  = "SIMULATOR_EVENT_BUS_NAME"
+      value = var.event_bus_name
+    },
+    {
+      name  = "SIMULATOR_AWS_REGION"
+      value = var.aws_region
+    }
+  ]
 }
 
 resource "aws_ecs_task_definition" "worker" {
@@ -271,7 +267,7 @@ resource "aws_ecs_task_definition" "simulator" {
           drop = ["ALL"]
         }
       }
-      command = ["feed", "--scenario", "baseline-week"]
+      command = ["publish-aws", "--scenario", "baseline-week", "--confirm-aws-publish"]
       mountPoints = [
         {
           sourceVolume  = "simulator-tmp"
@@ -280,12 +276,7 @@ resource "aws_ecs_task_definition" "simulator" {
         }
       ]
       environment = local.simulator_environment
-      secrets = [
-        {
-          name      = "SIMULATOR_API_TOKEN"
-          valueFrom = var.simulator_api_token_secret_arn
-        }
-      ]
+      secrets     = []
       logConfiguration = {
         logDriver = "awslogs"
         options = {

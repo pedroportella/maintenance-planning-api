@@ -10,10 +10,10 @@ The review shape includes:
 - optional private service endpoints or NAT-based egress for image pulls, logs and secrets access;
 - ECR repositories for API, web, simulator, worker and migration-runner images with immutable tags and scan-on-push;
 - an ECS/Fargate cluster with API and web services using digest-based image references;
-- one-off task definitions for migration, simulator and worker workloads;
+- one-off task definitions for migration, simulator EventBridge publish and worker workloads;
 - an application load balancer with API path routing and optional HTTPS/WAF inputs;
 - RDS SQL Server with encrypted storage, private networking and RDS-managed master password;
-- Secrets Manager placeholders for runtime database passwords and simulator API token values;
+- Secrets Manager placeholders for runtime database passwords and optional simulator API token values;
 - EventBridge, SQS and DLQ resources for the synthetic event path;
 - CloudWatch log groups and an optional budget alert.
 
@@ -95,7 +95,7 @@ Before applying:
 1. Confirm the monthly budget alert has at least one email subscriber.
 2. Confirm backend config is local and points at the intended review account.
 3. Push API, web and simulator images to the review ECR repositories and record their digests.
-4. Populate Secrets Manager values for API database password, worker database password, migration database password and simulator API token when those workloads are used.
+4. Populate Secrets Manager values for API database password, worker database password and migration database password when those workloads are used.
 5. Choose either NAT egress or private service endpoints for private tasks.
 6. Keep `MAINTENANCE_PLANNING_API_URL` server-only for web backend mode. Do not add browser-visible backend URL variables.
 
@@ -122,7 +122,7 @@ curl -fsS http://<review-load-balancer>/health/ready
 curl -fsS http://<review-load-balancer>/openapi/v1.json
 ```
 
-Then run the migration task through release orchestration, not through Terraform provisioners. After migration success, check protected API routes with the configured review token. Run the worker service and simulator task only after queue, database and token secrets have been populated.
+Then run the migration task through release orchestration, not through Terraform provisioners. After migration success, check protected API routes with the configured review token. Run the worker service and simulator publish task only after queue, database and required runtime secrets have been populated.
 
 ## Teardown
 
@@ -145,4 +145,4 @@ Post-destroy checks:
 - Application and migration database users still need a controlled credential creation and rotation path.
 - Review deployment has not been applied or smoked from this repository state.
 - Task-definition JSON rendering in a real pipeline still needs to be wired to the chosen image push process.
-- Simulator AWS publish mode and deployed event smoke are still follow-up work; the inbound worker and messaging resources are present so IAM, queues, logs and operations posture have a stable target.
+- A live simulator AWS publish and deployed event smoke have not been run from this repository state; the inbound worker and messaging resources are present so IAM, queues, logs and operations posture have a stable target.
