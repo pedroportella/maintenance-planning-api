@@ -18,6 +18,16 @@ This repository will contain a .NET API and worker service for synthetic mainten
 
 This is a prototype for review and learning. It does not connect to any employer, client or production source system. All data is synthetic, and controls such as enterprise identity, resilience engineering, independent security review and operational ownership remain production-next work unless explicitly implemented.
 
+## Showcase Repos
+
+This API is one part of a three-repo synthetic maintenance-planning showcase:
+
+- [maintenance-planning-api](https://github.com/pedroportella/maintenance-planning-api) owns persistence, planning recommendations, API contracts, operations posture, Terraform review infrastructure, worker ingestion, replay and outbound events.
+- [maintenance-data-simulator](https://github.com/pedroportella/maintenance-data-simulator) produces deterministic synthetic source-system-shaped data for local HTTP feed checks and explicit AWS EventBridge publish checks.
+- [maintenance-planning-web](https://github.com/pedroportella/maintenance-planning-web) provides the React planner workbench over typed service adapters, using mock mode by default and backend mode only when pointed at this API server-side.
+
+Review the API first when validating system behaviour, use the simulator to seed or publish synthetic events, then use the web workbench to inspect the planner journey. A live AWS review still needs image digest promotion, Terraform plan review, release-gate execution and smoke evidence before it is described as exercised.
+
 ## Start Here
 
 - [Architecture](docs/architecture.md)

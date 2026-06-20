@@ -2,6 +2,26 @@
 
 Current state: .NET API and event ingestion/outbox worker with health endpoints, OpenAPI JSON, safe errors, tests, SQL Server persistence through EF Core migrations, local HTTP import contracts for synthetic source-system-shaped events, planner work-order query routes, local review auth policies, command rate limiting, operations-protected dead-letter replay, EventBridge/SQS review wiring, outbound EventBridge dispatch, a simulator EventBridge publish task definition and containerised API, worker and migration-runner runtime paths.
 
+## Cross-Repo Review Path
+
+This API is the system-of-record side of a three-repo synthetic showcase:
+
+- [maintenance-data-simulator](https://github.com/pedroportella/maintenance-data-simulator) seeds deterministic local data and can publish the same synthetic scenario events to EventBridge when a review AWS stack is ready.
+- [maintenance-planning-web](https://github.com/pedroportella/maintenance-planning-web) is the planner workbench that reads this API through server-side backend mode or deterministic mock mode.
+
+Smallest credible live AWS review path:
+
+1. Build and push API, worker, migration-runner, simulator and web images, then record exact image digests.
+2. Review the Terraform plan with digest-pinned task definitions, budget controls, secret placeholders, queues, worker wiring, EventBridge rules and teardown notes.
+3. Run the migration release gate in dry-run mode, then run the live migration task only after database credentials and task networking are confirmed.
+4. Check API and web health through the review endpoints without exposing private backend origins to the browser.
+5. Publish the deterministic simulator scenario to EventBridge with explicit confirmation.
+6. Confirm worker consumption into SQL Server projections and verify idempotent retry behaviour.
+7. Check operations posture for freshness, queue depth and dead-letter state.
+8. If the review stack is safe to mutate, run a protected dead-letter replay smoke and one outbound event dispatch smoke with synthetic records.
+
+No live AWS deployment, simulator publish, worker consumption, SQL projection, dead-letter replay or outbound EventBridge smoke has been run from this repository state.
+
 ## Local Checks
 
 ```bash
