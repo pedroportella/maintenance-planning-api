@@ -2,6 +2,8 @@
 
 The API image is the runtime boundary for local review, CI and later cloud deployment work. It uses a conventional multi-stage Dockerfile so the final image contains the published API output only, not the SDK, repository metadata, test projects, source files or local configuration.
 
+For the cross-repo local Docker recipe, including API, simulator and web commands, see the [local Docker system runbook](local-docker-system.md).
+
 ## Local Image Build
 
 ```bash

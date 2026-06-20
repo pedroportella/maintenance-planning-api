@@ -99,7 +99,7 @@ Before applying:
 3. Push API, web and simulator images to the review ECR repositories and record their digests.
 4. Populate Secrets Manager values for API database password, worker database password and migration database password when those workloads are used.
 5. Choose either NAT egress or private service endpoints for private tasks.
-6. Keep `MAINTENANCE_PLANNING_API_URL` server-only for web backend mode. Do not add browser-visible backend URL variables.
+6. Keep `MAINTENANCE_PLANNING_API_URL` and any web API token server-only for web backend mode. Do not add browser-visible backend URL or credential variables.
 
 Review a plan before apply:
 

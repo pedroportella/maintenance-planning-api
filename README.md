@@ -33,6 +33,7 @@ Review the API first when validating system behaviour, use the simulator to seed
 - [Architecture](docs/architecture.md)
 - [API](docs/api.md)
 - [Containerisation](docs/containerisation.md)
+- [Local Docker system runbook](docs/local-docker-system.md)
 - [Event contracts](docs/event-contracts.md)
 - [AWS and Terraform](docs/aws-terraform.md)
 - [Migration release gate](docs/release-gate.md)
