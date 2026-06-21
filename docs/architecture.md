@@ -2,6 +2,8 @@
 
 The target architecture is a production-shaped .NET API and worker backed by SQL Server.
 
+For cross-repo diagrams covering the workbench, API, simulator, local Docker, AWS review and production-next shapes, see [Solution architecture](solution-architecture.md).
+
 Planned flow:
 
 ```text

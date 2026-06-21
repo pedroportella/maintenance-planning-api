@@ -31,6 +31,7 @@ Review the API first when validating system behaviour, use the simulator to seed
 ## Start Here
 
 - [Architecture](docs/architecture.md)
+- [Solution architecture](docs/solution-architecture.md)
 - [API](docs/api.md)
 - [Containerisation](docs/containerisation.md)
 - [Local Docker system runbook](docs/local-docker-system.md)
