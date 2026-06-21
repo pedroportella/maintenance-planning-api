@@ -12,6 +12,7 @@ public sealed record LatestImportFreshness(
     Guid ImportId,
     string SourceSystem,
     string ImportKind,
+    string IdempotencyKey,
     string Status,
     int ReceivedCount,
     int AcceptedCount,

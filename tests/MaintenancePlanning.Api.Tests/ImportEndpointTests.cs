@@ -137,6 +137,7 @@ public sealed class ImportEndpointTests
 
         Assert.Equal(HttpStatusCode.OK, postureResponse.StatusCode);
         Assert.Equal("maintenance-events", latestImport.GetProperty("importKind").GetString());
+        Assert.Equal("baseline-week-contract-import-1", latestImport.GetProperty("idempotencyKey").GetString());
         Assert.Equal(8, latestImport.GetProperty("receivedCount").GetInt32());
         Assert.Equal(1, latestImport.GetProperty("ignoredDuplicateCount").GetInt32());
     }

@@ -79,6 +79,7 @@ public static class OperationsEndpoints
                     latestImport.ImportId,
                     latestImport.SourceSystem,
                     latestImport.ImportKind,
+                    latestImport.IdempotencyKey,
                     latestImport.Status,
                     latestImport.ReceivedCount,
                     latestImport.AcceptedCount,
