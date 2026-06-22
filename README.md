@@ -10,17 +10,18 @@ It is a neutral prototype using synthetic data only. It does not connect to any 
 
 1. Read the [solution handover](docs/solution-handover.md) for the whole API, simulator and web review path.
 2. Scan [solution architecture](docs/solution-architecture.md) for component boundaries and local/AWS/production-next diagrams.
-3. Use [reviewer-runbook.md](docs/reviewer-runbook.md) for API checks, Terraform review, migration release-gate evidence and AWS smoke sequencing.
-4. Use [local-docker-system.md](docs/local-docker-system.md) for the proven local Docker path across API, simulator, SQL Server and backend-mode web.
-5. Treat AWS EventBridge, SQS worker ingestion, DLQ replay and outbound EventBridge smoke as pending until live review evidence is captured.
+3. Use the [Planner Workbench reviewer pack](https://github.com/pedroportella/maintenance-planning-web/blob/main/docs/reviewer-pack.md) for the quickest UI review path in deterministic mock mode.
+4. Use the [Simulator API reviewer runbook](https://github.com/pedroportella/maintenance-data-simulator/blob/main/docs/reviewer-runbook.md) to inspect deterministic scenarios and local feed behaviour.
+5. Use [reviewer-runbook.md](docs/reviewer-runbook.md) for API checks, Terraform review, migration release-gate evidence and AWS smoke sequencing.
+6. Use [local-docker-system.md](docs/local-docker-system.md) for the proven local Docker path across API, simulator, SQL Server and backend-mode web.
 
 ## Showcase Repositories
 
-| Repository | Responsibility |
-| --- | --- |
-| [maintenance-planning-api](https://github.com/pedroportella/maintenance-planning-api) | Persistence, API contracts, recommendations, decisions, operations posture, worker, replay, outbound events and review infrastructure. |
-| [maintenance-data-simulator](https://github.com/pedroportella/maintenance-data-simulator) | Deterministic synthetic source-system-shaped scenarios, local HTTP feed and explicit EventBridge publish mode. |
-| [maintenance-planning-web](https://github.com/pedroportella/maintenance-planning-web) | Planner workbench over typed service adapters, with deterministic mock mode and server-side backend mode. |
+| Repository | Review role | Start here |
+| --- | --- | --- |
+| [maintenance-planning-api](https://github.com/pedroportella/maintenance-planning-api) | System of record and main engineering proof. | [Reviewer runbook](docs/reviewer-runbook.md) |
+| [maintenance-data-simulator](https://github.com/pedroportella/maintenance-data-simulator) | Deterministic synthetic data producer. | [Simulator reviewer runbook](https://github.com/pedroportella/maintenance-data-simulator/blob/main/docs/reviewer-runbook.md) |
+| [maintenance-planning-web](https://github.com/pedroportella/maintenance-planning-web) | Planner-facing workbench. | [Reviewer pack](https://github.com/pedroportella/maintenance-planning-web/blob/main/docs/reviewer-pack.md) |
 
 ## Repository Shape
 
@@ -32,6 +33,17 @@ docs/      architecture, runbooks, security, event and production-next notes
 infra/     Terraform review infrastructure
 scripts/   quality guards, smoke checks and release-gate helpers
 ```
+
+## Evidence Status
+
+| Area | Status |
+| --- | --- |
+| Local Docker API, simulator, SQL Server and backend-mode web path | Passed on 2026-06-21. |
+| Planner API contracts and operations posture | Implemented for review. |
+| Planner Workbench backend mode | Implemented with server-side API configuration. |
+| AWS infrastructure shape | Defined, but live evidence requires an applied review stack and smoke checks. |
+| EventBridge, SQS and worker ingestion | Not proven until the live AWS event path is smoked. |
+| Production-next architecture | Conceptual target only. |
 
 ## What Is Real
 
@@ -52,8 +64,7 @@ scripts/   quality guards, smoke checks and release-gate helpers
 - All work orders, maintenance events, planner decisions and scenario outcomes are synthetic.
 - Local bearer tokens are review-only and replace production identity.
 - The local HTTP import path is source-system-shaped, not a real source-system connection.
-- Terraform defines a review environment, but live AWS deployment and smoke evidence are separate from this README.
-- EventBridge, SQS worker ingestion, DLQ replay and outbound EventBridge smoke are not claimed as exercised until a live review stack proves them.
+- Terraform defines a review environment, but no live AWS deployment, simulator publish, worker consumption, SQL projection, dead-letter replay or outbound EventBridge smoke has been run from this repository state.
 - Production controls such as enterprise identity, restore drills, incident ownership, full observability, independent security review and resilience assurance remain production-next work.
 
 ## API Surface
@@ -76,7 +87,12 @@ GET  /api/v1/planning-runs/{id}/recommendations
 POST /api/v1/packages/{id}/decisions
 ```
 
-Health and OpenAPI routes are public for local readiness checks. `/api/v1` routes require synthetic local bearer tokens such as `local-reviewer-token`.
+Health and OpenAPI routes are public for local readiness checks. `/api/v1` routes require synthetic local bearer tokens:
+
+- `local-planner-token` for planner backlog, planning runs and package decisions;
+- `local-import-token` for source-system-shaped import feeds;
+- `local-operations-token` for operations posture and migration readiness;
+- `local-reviewer-token` for reviewer smoke checks across all policies.
 
 ## Run Locally
 

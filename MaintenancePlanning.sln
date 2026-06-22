@@ -19,6 +19,38 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{B6755D2F
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaintenancePlanning.Api.Tests", "tests\MaintenancePlanning.Api.Tests\MaintenancePlanning.Api.Tests.csproj", "{87FA7E9E-82F3-4F70-8934-C10A3411AF01}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{25A1884E-5F81-4104-8F5B-8C0B21B5E30C}"
+	ProjectSection(SolutionItems) = preProject
+		docs\api.md = docs\api.md
+		docs\architecture.md = docs\architecture.md
+		docs\aws-terraform.md = docs\aws-terraform.md
+		docs\containerisation.md = docs\containerisation.md
+		docs\event-contracts.md = docs\event-contracts.md
+		docs\local-docker-system.md = docs\local-docker-system.md
+		docs\outbound-events.asyncapi.json = docs\outbound-events.asyncapi.json
+		docs\production-next.md = docs\production-next.md
+		docs\release-gate.md = docs\release-gate.md
+		docs\reviewer-runbook.md = docs\reviewer-runbook.md
+		docs\security-and-operations.md = docs\security-and-operations.md
+		docs\solution-architecture.md = docs\solution-architecture.md
+		docs\solution-handover.md = docs\solution-handover.md
+		docs\Review.md = docs\Review.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A6612C86-DE9D-4896-82D2-D08BC3119762}"
+	ProjectSection(SolutionItems) = preProject
+		Dockerfile.migrations = Dockerfile.migrations
+		README.md = README.md
+		package.json = package.json
+		Directory.Build.props = Directory.Build.props
+		AGENTS.md = AGENTS.md
+		CLAUDE.md = CLAUDE.md
+		docker-compose.yml = docker-compose.yml
+		global.json = global.json
+		Dockerfile.worker = Dockerfile.worker
+		Dockerfile = Dockerfile
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -60,5 +92,6 @@ Global
 		{A85EABFA-C14D-4E1A-8E03-437A4E91A8E2} = {73C375AE-07C2-4CD5-B5AA-31F30AB2300B}
 		{31CF267C-7BEE-4843-A4B3-C2CE08455742} = {73C375AE-07C2-4CD5-B5AA-31F30AB2300B}
 		{87FA7E9E-82F3-4F70-8934-C10A3411AF01} = {B6755D2F-1426-4F69-B0F5-D836F5684016}
+		{25A1884E-5F81-4104-8F5B-8C0B21B5E30C} = {A6612C86-DE9D-4896-82D2-D08BC3119762}
 	EndGlobalSection
 EndGlobal
