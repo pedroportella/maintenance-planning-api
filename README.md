@@ -1,78 +1,92 @@
-# maintenance-planning-api
+# Maintenance Planning API
 
-Neutral review prototype for a production-shaped maintenance-planning API.
+Working .NET API and worker prototype for a synthetic maintenance-planning solution.
 
-## What This Is
+This repository is the system-of-record side of a three-repo review slice. It imports source-system-shaped maintenance events, persists planning projections in SQL Server, creates explainable work-order package recommendations, records planner decisions and exposes operations posture for review.
 
-This repository will contain a .NET API and worker service for synthetic maintenance-planning workflows:
+It is a neutral prototype using synthetic data only. It does not connect to any employer, client or production source system, and it does not claim production support, high availability, production identity or formal assurance.
 
-- source-system-shaped work-order import contracts using synthetic data;
-- SQL Server persistence through EF Core;
-- idempotent imports and event processing;
-- planning runs and explainable work-order package recommendations;
-- outbound planning events through a transactional outbox;
-- operations posture, health/readiness and safe API errors;
-- Terraform-managed AWS review infrastructure.
+## Fast Review
 
-## Boundary
+1. Read the [solution handover](docs/solution-handover.md) for the whole API, simulator and web review path.
+2. Scan [solution architecture](docs/solution-architecture.md) for component boundaries and local/AWS/production-next diagrams.
+3. Use [reviewer-runbook.md](docs/reviewer-runbook.md) for API checks, Terraform review, migration release-gate evidence and AWS smoke sequencing.
+4. Use [local-docker-system.md](docs/local-docker-system.md) for the proven local Docker path across API, simulator, SQL Server and backend-mode web.
+5. Treat AWS EventBridge, SQS worker ingestion, DLQ replay and outbound EventBridge smoke as pending until live review evidence is captured.
 
-This is a prototype for review and learning. It does not connect to any employer, client or production source system. All data is synthetic, and controls such as enterprise identity, resilience engineering, independent security review and operational ownership remain production-next work unless explicitly implemented.
+## Showcase Repositories
 
-## Showcase Repos
+| Repository | Responsibility |
+| --- | --- |
+| [maintenance-planning-api](https://github.com/pedroportella/maintenance-planning-api) | Persistence, API contracts, recommendations, decisions, operations posture, worker, replay, outbound events and review infrastructure. |
+| [maintenance-data-simulator](https://github.com/pedroportella/maintenance-data-simulator) | Deterministic synthetic source-system-shaped scenarios, local HTTP feed and explicit EventBridge publish mode. |
+| [maintenance-planning-web](https://github.com/pedroportella/maintenance-planning-web) | Planner workbench over typed service adapters, with deterministic mock mode and server-side backend mode. |
 
-This API is one part of a three-repo synthetic maintenance-planning showcase:
+## Repository Shape
 
-- [maintenance-planning-api](https://github.com/pedroportella/maintenance-planning-api) owns persistence, planning recommendations, API contracts, operations posture, Terraform review infrastructure, worker ingestion, replay and outbound events.
-- [maintenance-data-simulator](https://github.com/pedroportella/maintenance-data-simulator) produces deterministic synthetic source-system-shaped data for local HTTP feed checks and explicit AWS EventBridge publish checks.
-- [maintenance-planning-web](https://github.com/pedroportella/maintenance-planning-web) provides the React planner workbench over typed service adapters, using mock mode by default and backend mode only when pointed at this API server-side.
+```text
+src/       .NET API, application, domain, infrastructure and worker projects
+tests/     focused API, application and infrastructure tests
+deploy/    ECS release-gate task definition examples
+docs/      architecture, runbooks, security, event and production-next notes
+infra/     Terraform review infrastructure
+scripts/   quality guards, smoke checks and release-gate helpers
+```
 
-Review the API first when validating system behaviour, use the simulator to seed or publish synthetic events, then use the web workbench to inspect the planner journey. A live AWS review still needs image digest promotion, Terraform plan review, release-gate execution and smoke evidence before it is described as exercised.
+## What Is Real
 
-## Start Here
+- .NET API routes for health, OpenAPI, imports, work orders, planning runs, recommendations, planner decisions and protected operations.
+- SQL Server persistence through explicit EF Core migrations.
+- Backend-authoritative import validation, idempotency and import audit.
+- Deterministic package recommendations with blocker explanations and source-data readiness.
+- Audited planner decisions and transactional outbound event outbox records.
+- Operations posture for source freshness, queue depth, dead-letter state and latest ingestion failure.
+- Protected dead-letter replay command with audit records.
+- Event ingestion worker and outbound EventBridge dispatch paths.
+- API, worker and migration-runner container paths.
+- Terraform review infrastructure, digest-pinned task definition support and migration release-gate scripts.
+- Public documentation guards, event-contract smoke checks and reviewer-evidence smoke checks.
 
-- [Architecture](docs/architecture.md)
-- [Solution architecture](docs/solution-architecture.md)
-- [API](docs/api.md)
-- [Containerisation](docs/containerisation.md)
-- [Local Docker system runbook](docs/local-docker-system.md)
-- [Event contracts](docs/event-contracts.md)
-- [AWS and Terraform](docs/aws-terraform.md)
-- [Migration release gate](docs/release-gate.md)
-- [Security and operations](docs/security-and-operations.md)
-- [Reviewer runbook](docs/reviewer-runbook.md)
-- [Production-next](docs/production-next.md)
+## What Is Synthetic Or Prototype-Only
 
-## Current State
+- All work orders, maintenance events, planner decisions and scenario outcomes are synthetic.
+- Local bearer tokens are review-only and replace production identity.
+- The local HTTP import path is source-system-shaped, not a real source-system connection.
+- Terraform defines a review environment, but live AWS deployment and smoke evidence are separate from this README.
+- EventBridge, SQS worker ingestion, DLQ replay and outbound EventBridge smoke are not claimed as exercised until a live review stack proves them.
+- Production controls such as enterprise identity, restore drills, incident ownership, full observability, independent security review and resilience assurance remain production-next work.
 
-The repository now contains the initial .NET API, event ingestion and outbox dispatch worker, containerised API and worker runtime paths, SQL Server persistence through EF Core migrations, local HTTP import contracts for synthetic source-system-shaped work orders and maintenance events, planner work-order query routes, planning-run recommendation routes, Terraform review-infrastructure foundations and an ECS migration release-gate script. Implemented foundation capabilities include startup, liveness and readiness health endpoints, OpenAPI JSON, local bearer-token auth policies, command rate limiting, migration readiness reporting, idempotent import and queued-event audit fields, deterministic package recommendations, planner decision audit rows, transactional outbound event outbox records, operations-protected dead-letter replay, EventBridge-to-SQS review wiring, queue and dead-letter posture reporting, correlation ids, safe problem-details errors, structured console logging, graceful shutdown state, explicit local migrations, restricted container smoke, Terraform validation and dry-run release-gate checks.
+## API Surface
+
+```text
+GET  /health/startup
+GET  /health/live
+GET  /health/ready
+GET  /openapi/v1.json
+GET  /api/v1/operations/migration-readiness
+GET  /api/v1/operations/posture
+POST /api/v1/operations/eventing/dead-letter-replays
+GET  /api/v1/work-orders
+GET  /api/v1/work-orders/{id}
+POST /api/v1/imports/source-work-orders
+POST /api/v1/imports/maintenance-events
+POST /api/v1/planning-runs
+GET  /api/v1/planning-runs/{id}
+GET  /api/v1/planning-runs/{id}/recommendations
+POST /api/v1/packages/{id}/decisions
+```
+
+Health and OpenAPI routes are public for local readiness checks. `/api/v1` routes require synthetic local bearer tokens such as `local-reviewer-token`.
 
 ## Run Locally
+
+Start the API without local SQL Server when you only need health, OpenAPI and safe unavailable-database responses:
 
 ```bash
 dotnet run --project src/MaintenancePlanning.Api/MaintenancePlanning.Api.csproj
 ```
 
-Useful local endpoints:
-
-- `GET /health/startup`
-- `GET /health/live`
-- `GET /health/ready`
-- `GET /openapi/v1.json`
-- `GET /api/v1/operations/migration-readiness`
-- `GET /api/v1/operations/posture`
-- `POST /api/v1/operations/eventing/dead-letter-replays`
-- `GET /api/v1/work-orders`
-- `GET /api/v1/work-orders/{id}`
-- `POST /api/v1/imports/source-work-orders`
-- `POST /api/v1/imports/maintenance-events`
-- `POST /api/v1/planning-runs`
-- `GET /api/v1/planning-runs/{id}`
-- `GET /api/v1/planning-runs/{id}/recommendations`
-- `POST /api/v1/packages/{id}/decisions`
-
-Local `/api/v1` routes require a synthetic bearer token such as `local-reviewer-token`. Health and OpenAPI routes stay public for readiness checks.
-
-To run with local SQL Server:
+Run with local SQL Server persistence:
 
 ```bash
 dotnet tool restore
@@ -85,20 +99,59 @@ dotnet dotnet-ef database update --project src/MaintenancePlanning.Infrastructur
 dotnet run --project src/MaintenancePlanning.Api/MaintenancePlanning.Api.csproj
 ```
 
-The API reports pending migrations but does not apply schema changes during startup.
+Open:
 
-## Checks
+- Health: `http://localhost:5000/health/ready`
+- OpenAPI: `http://localhost:5000/openapi/v1.json`
+
+The API reports pending migrations but does not apply schema changes during startup. Use the [local Docker system runbook](docs/local-docker-system.md) for the full API, simulator, SQL Server and backend-mode web review path.
+
+## Verify
+
+Focused API checks:
 
 ```bash
 dotnet format MaintenancePlanning.sln --verify-no-changes --no-restore
 dotnet test MaintenancePlanning.sln --no-restore --disable-build-servers -m:1 -p:UseSharedCompilation=false
-node scripts/quality-guards.mjs all
-node scripts/terraform-validate.mjs
-node scripts/reviewer-evidence-smoke.mjs
-node scripts/event-contract-smoke.mjs
-node scripts/ecs-release-gate-tests.mjs
+npm run guard
+npm run test:reviewer-evidence
+npm run test:event-contracts
+npm run release:gate:test
+```
+
+Broader review helpers:
+
+```bash
+npm run verify
 npm run deploy:release-gate:dry-run
+node scripts/terraform-validate.mjs
 node scripts/container-smoke.mjs
 node scripts/worker-container-build.mjs
 node scripts/database-smoke.mjs
 ```
+
+Use Docker and database smokes only when container packaging or persistence is part of the review.
+
+## Key Docs
+
+- [Solution handover](docs/solution-handover.md)
+- [Reviewer runbook](docs/reviewer-runbook.md)
+- [Architecture](docs/architecture.md)
+- [Solution architecture](docs/solution-architecture.md)
+- [API details](docs/api.md)
+- [Event contracts](docs/event-contracts.md)
+- [Security and operations](docs/security-and-operations.md)
+- [Local Docker system runbook](docs/local-docker-system.md)
+- [Containerisation](docs/containerisation.md)
+- [AWS and Terraform](docs/aws-terraform.md)
+- [Migration release gate](docs/release-gate.md)
+- [Production-next](docs/production-next.md)
+
+## Production Next
+
+- Replace local synthetic tokens with validated production identity and authorization.
+- Connect through a governed integration boundary to a real maintenance source or curated data platform.
+- Add private networking, environment separation, backup and restore drills.
+- Add full logs, metrics, traces, alert routing and support ownership.
+- Add SBOMs, provenance attestations, image signing and registry vulnerability scanning.
+- Complete threat modelling, independent security review, resilience testing and cost-management processes.
