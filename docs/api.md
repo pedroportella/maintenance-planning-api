@@ -123,6 +123,8 @@ Planning endpoints require database persistence to be configured. When persisten
 }
 ```
 
+Planning-run creation is deterministic for the same imported source state, but it is not currently a retry-idempotent command. Client-supplied idempotency for planning-run creation is a production-next hardening item.
+
 `GET /api/v1/planning-runs/{id}` returns the run status, horizon and recommendation counts.
 
 `GET /api/v1/planning-runs/{id}/recommendations` returns package recommendations with:
@@ -146,4 +148,4 @@ Planning endpoints require database persistence to be configured. When persisten
 
 Allowed decision values are `Accepted`, `Rejected` and `Deferred`. A decision updates package status and records one or more decision audit rows. Invalid decision payloads return `422`.
 
-Planning run completion and package decisions also create outbound domain-event outbox records in the same database transaction. The worker dispatches those records to the configured EventBridge bus when outbound publishing is enabled.
+Planning run completion and package decisions also create outbound domain-event outbox records in the same database transaction. The worker dispatches those records to the configured EventBridge bus when outbound publishing is enabled. Outbound delivery is at least once; consumers should de-duplicate on the outbound event idempotency key.

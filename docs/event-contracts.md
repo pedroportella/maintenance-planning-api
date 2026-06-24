@@ -47,6 +47,8 @@ The import result reports accepted, rejected, ignored duplicate and ignored stal
 
 The API records outbound planning events in the SQL outbox inside the same transaction as the planning change. The worker dispatches pending outbox rows to EventBridge when `MAINTENANCE_PLANNING_EVENT_BUS_NAME` is configured.
 
+Outbound publishing is an at-least-once delivery path. Downstream consumers should de-duplicate on the outbound `idempotencyKey` and tolerate a retry if EventBridge accepts an event but the worker fails before marking the outbox row as published.
+
 Outbound events use this envelope:
 
 - `eventId`

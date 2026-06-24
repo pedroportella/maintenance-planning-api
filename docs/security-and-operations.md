@@ -10,7 +10,7 @@ Implemented local review controls:
 - synthetic bearer-token authentication for local review;
 - role/scope authorization policies for planner, imports and operations routes;
 - command route rate limiting;
-- idempotency for non-idempotent commands;
+- idempotent import and queued-event handling for safe retries and duplicate deliveries;
 - planner work-order querying with allow-listed filters and sorts;
 - operations posture with source freshness, event queue depth, dead-letter count and latest event-ingestion failure code;
 - operations-protected dead-letter replay with audit records;
@@ -29,6 +29,8 @@ Production-next controls:
 
 - replace local test tokens with issuer and audience validated JWT/OIDC configuration;
 - add object-level access checks once tenant or site ownership exists in the model;
+- split read and write policy checks where production roles need separate planner capabilities;
+- add retry idempotency for planning-run creation if clients need safe create retries;
 - add richer outbound event posture once deployed event smoke evidence exists.
 
 Do not expose secrets, connection strings, stack traces or raw infrastructure details in public responses or docs.

@@ -89,14 +89,18 @@ For a review deployment, push the API and migration-runner images, render task-d
 
 After a review apply, check the load-balancer health and OpenAPI routes, then run protected API, worker and simulator smokes only after required runtime secrets have been populated. Destroy the review stack when it is no longer being used and confirm services, database, queues, logs and image repositories are no longer creating review spend.
 
-## Future Local Smoke
+## Proven Local Docker Smoke
 
-The planned local smoke will:
+The cross-repo local Docker path has been run successfully with SQL Server, explicit migrations, the API container, simulator HTTP feed and backend-mode web rendering. Use [local-docker-system.md](local-docker-system.md) for the exact commands.
 
-1. wait for API readiness;
-2. verify SQL Server readiness;
-3. post a deterministic synthetic scenario to the local import endpoint;
-4. retry the import and confirm idempotency;
-5. start a planning run;
-6. fetch work-order backlog and recommendations;
-7. fetch operations posture.
+That local path proves:
+
+1. API readiness against SQL Server after explicit migrations;
+2. deterministic synthetic scenario import through the HTTP boundary;
+3. idempotent replay of the same import;
+4. planning-run and recommendation generation;
+5. package decision audit;
+6. operations posture over the imported synthetic data;
+7. server-side backend-mode web rendering over the local API.
+
+It does not prove the live AWS EventBridge, SQS, worker, DLQ replay or outbound EventBridge path. Keep those as separate review checks.

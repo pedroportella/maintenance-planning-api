@@ -2,7 +2,7 @@
 
 Short handover for reviewing the Maintenance Planning Solution across the API, simulator and web repositories.
 
-Last updated: 2026-06-22.
+Last updated: 2026-06-24.
 
 ## What This Is
 
@@ -10,7 +10,7 @@ This is a three-repo synthetic maintenance-planning vertical slice:
 
 - `Planner API (API)` owns imports, persistence, planning recommendations, planner decisions, audit, operations posture, worker ingestion, replay, outbound events and review infrastructure.
 - `Simulator API (Simulator)` produces deterministic source-system-shaped events for local HTTP feed checks and explicit EventBridge publish checks.
-- `Planner Workbench (Web)` presents the planner workflow through deterministic mock mode by default and server-side backend mode when the API has been seeded.
+- `Planner Workbench (Web)` presents the planner workflow through deterministic mock mode by default and server-side backend mode when the API has been seeded. Its current UI is assembled through a Radix-backed local adapter system with Sass theme entrypoints and separated component and route visual evidence.
 
 It is production-shaped review evidence, not a production service. It does not connect to any employer, client or production source system, and it does not claim production support, high availability, production identity or formal assurance.
 
@@ -73,7 +73,7 @@ Use the repo-level runbooks for full Docker, SQL Server, backend-mode web and AW
 - Idempotent import handling, recommendation generation, planner decision audit and transactional outbox records.
 - Worker, EventBridge, SQS, DLQ and outbound dispatch code paths prepared for review infrastructure.
 - Deterministic simulator scenario packs, schema validation, local feed mode, API smoke and confirmation-gated EventBridge publish mode.
-- Next.js planner workbench with typed service adapters, deterministic mock mode, backend mode, reviewer pack, visual evidence checks and browser-bundle leakage guards.
+- Next.js planner workbench with typed service adapters, deterministic mock mode, backend mode, Radix-backed UI adapters, reviewer pack, separated UI-library and route-wide visual evidence checks and browser-bundle leakage guards.
 - Terraform review infrastructure, migration-runner task definitions and release-gate scripts.
 
 ## What Is Synthetic Or Prototype-Only
@@ -91,7 +91,7 @@ Use the repo-level runbooks for full Docker, SQL Server, backend-mode web and AW
 | --- | --- |
 | API, simulator and web implementation stages | Complete for the current showcase. |
 | Local Docker API, simulator, SQL Server and backend-mode web path | Passed on 2026-06-21. |
-| Workbench mock review path | Implemented and guarded locally. |
+| Workbench mock review path | Implemented and guarded locally, including focused UI-library and route-wide visual baselines. |
 | Terraform and migration release-gate preparation | Implemented as review infrastructure and scripts. |
 | Live AWS deployment, EventBridge publish, SQS worker consumption and DLQ replay | Not yet proven from the current repository state. |
 

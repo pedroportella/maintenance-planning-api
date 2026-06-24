@@ -42,7 +42,7 @@ scripts/   quality guards, smoke checks and release-gate helpers
 - Audited planner decisions and transactional outbound event outbox records.
 - Operations posture for source freshness, queue depth, dead-letter state and latest ingestion failure.
 - Protected dead-letter replay command with audit records.
-- Event ingestion worker and outbound EventBridge dispatch paths.
+- Event ingestion worker and at-least-once outbound EventBridge dispatch paths.
 - API, worker and migration-runner container paths.
 - Terraform review infrastructure, digest-pinned task definition support and migration release-gate scripts.
 - Public documentation guards, event-contract smoke checks and reviewer-evidence smoke checks.
@@ -54,6 +54,7 @@ scripts/   quality guards, smoke checks and release-gate helpers
 - The local HTTP import path is source-system-shaped, not a real source-system connection.
 - Terraform defines a review environment, but live AWS deployment and smoke evidence are separate from this README.
 - EventBridge, SQS worker ingestion, DLQ replay and outbound EventBridge smoke are not claimed as exercised until a live review stack proves them.
+- Planning-run creation is deterministic but not currently retry-idempotent; client-supplied idempotency for that command is production-next hardening.
 - Production controls such as enterprise identity, restore drills, incident ownership, full observability, independent security review and resilience assurance remain production-next work.
 
 ## API Surface
