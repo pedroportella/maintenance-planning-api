@@ -605,10 +605,18 @@ namespace MaintenancePlanning.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("HorizonStartUtc")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
                     b.Property<string>("RequestedBy")
                         .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("RequestHash")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("RunNumber")
                         .IsRequired()
@@ -625,6 +633,10 @@ namespace MaintenancePlanning.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique()
+                        .HasFilter("[IdempotencyKey] IS NOT NULL");
+
                     b.HasIndex("RunNumber")
                         .IsUnique();
 
@@ -638,7 +650,9 @@ namespace MaintenancePlanning.Infrastructure.Persistence.Migrations
                             Horizon = "two-week",
                             HorizonEndUtc = new DateTimeOffset(new DateTime(2026, 1, 30, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             HorizonStartUtc = new DateTimeOffset(new DateTime(2026, 1, 16, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IdempotencyKey = "seed-planning-run-2026-01-15",
                             RequestedBy = "local-review",
+                            RequestHash = "sha256-seed-planning-run",
                             RunNumber = "RUN-1000",
                             StartedAtUtc = new DateTimeOffset(new DateTime(2026, 1, 15, 0, 10, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             Status = "Completed"

@@ -11,10 +11,14 @@ public interface IPlanningStore
         DateTimeOffset horizonEndUtc,
         CancellationToken cancellationToken);
 
-    Task SavePlanningRunAsync(
+    Task<PlanningRunSaveResult> SavePlanningRunAsync(
         PlanningRun planningRun,
         IReadOnlyList<WorkOrderPackage> packages,
         IReadOnlyList<PackageItem> packageItems,
+        CancellationToken cancellationToken);
+
+    Task<StoredPlanningRun?> FindPlanningRunByIdempotencyKeyAsync(
+        string idempotencyKey,
         CancellationToken cancellationToken);
 
     Task<StoredPlanningRun?> FindPlanningRunAsync(
@@ -97,6 +101,13 @@ public sealed record WorkOrderQueryPage(
     IReadOnlyList<PlanningWorkOrderSnapshot> Items,
     int? NextOffset);
 
+public sealed record PlanningRunSaveResult(bool Created, StoredPlanningRun? ExistingRun)
+{
+    public static PlanningRunSaveResult CreatedRun() => new(true, null);
+
+    public static PlanningRunSaveResult Existing(StoredPlanningRun existingRun) => new(false, existingRun);
+}
+
 public sealed record PlanningMajorEventSnapshot(
     Guid Id,
     Guid? AssetId,
@@ -138,6 +149,8 @@ public sealed record RecommendationProfile(
 public sealed record StoredPlanningRun(
     Guid Id,
     string RunNumber,
+    string? IdempotencyKey,
+    string? RequestHash,
     PlanningRunStatus Status,
     string Horizon,
     DateTimeOffset HorizonStartUtc,

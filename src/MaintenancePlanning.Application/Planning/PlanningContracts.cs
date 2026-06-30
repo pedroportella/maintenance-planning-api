@@ -2,6 +2,8 @@ namespace MaintenancePlanning.Application.Planning;
 
 public sealed class CreatePlanningRunRequest
 {
+    public string IdempotencyKey { get; init; } = "";
+
     public string Horizon { get; init; } = "two-week";
 
     public DateTimeOffset? HorizonStartUtc { get; init; }

@@ -112,6 +112,8 @@ internal static class MaintenancePlanningSeedData
         {
             Id = PlanningRunId,
             RunNumber = "RUN-1000",
+            IdempotencyKey = "seed-planning-run-2026-01-15",
+            RequestHash = "sha256-seed-planning-run",
             Status = PlanningRunStatus.Completed,
             Horizon = "two-week",
             HorizonStartUtc = BaseTime.AddDays(1),

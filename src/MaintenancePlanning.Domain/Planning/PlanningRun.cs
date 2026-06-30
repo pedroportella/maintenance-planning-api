@@ -6,6 +6,10 @@ public sealed class PlanningRun
 
     public string RunNumber { get; set; } = "";
 
+    public string? IdempotencyKey { get; set; }
+
+    public string? RequestHash { get; set; }
+
     public PlanningRunStatus Status { get; set; }
 
     public string Horizon { get; set; } = "";

@@ -1,5 +1,8 @@
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using MaintenancePlanning.Domain.Planning;
 
 namespace MaintenancePlanning.Application.Planning;
@@ -7,6 +10,7 @@ namespace MaintenancePlanning.Application.Planning;
 public sealed class PlanningService(IPlanningStore store) : IPlanningService
 {
     private const int StatusNotFound = 404;
+    private const int StatusConflict = 409;
     private const int StatusUnprocessableEntity = 422;
     private const int StatusServiceUnavailable = 503;
     private const int DefaultHorizonDays = 14;
@@ -15,6 +19,10 @@ public sealed class PlanningService(IPlanningStore store) : IPlanningService
     private const int MaximumWorkOrderPageSize = 100;
 
     private static readonly PlanningRecommendationEngine Engine = new();
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.Never
+    };
     private static readonly HashSet<string> DecisionTypes =
         Enum.GetNames<PlannerDecisionType>().ToHashSet(StringComparer.Ordinal);
     private static readonly HashSet<string> WorkOrderSorts = new(StringComparer.Ordinal)
@@ -46,6 +54,15 @@ public sealed class PlanningService(IPlanningStore store) : IPlanningService
             return PlanningProcessingOutcome<PlanningRunResult>.Failed(normalized.Problem);
         }
 
+        var existing = await store.FindPlanningRunByIdempotencyKeyAsync(
+            normalized.IdempotencyKey,
+            cancellationToken);
+        var existingOutcome = TryBuildIdempotencyOutcome(existing, normalized.RequestHash);
+        if (existingOutcome is not null)
+        {
+            return existingOutcome;
+        }
+
         var startedAtUtc = DateTimeOffset.UtcNow;
         var runNumber = BuildRunNumber(startedAtUtc);
         var snapshot = await store.LoadCandidateSnapshotAsync(
@@ -57,6 +74,8 @@ public sealed class PlanningService(IPlanningStore store) : IPlanningService
         {
             Id = Guid.NewGuid(),
             RunNumber = runNumber,
+            IdempotencyKey = normalized.IdempotencyKey,
+            RequestHash = normalized.RequestHash,
             Status = PlanningRunStatus.Completed,
             Horizon = normalized.Horizon,
             HorizonStartUtc = normalized.HorizonStartUtc,
@@ -88,7 +107,12 @@ public sealed class PlanningService(IPlanningStore store) : IPlanningService
             }))
             .ToArray();
 
-        await store.SavePlanningRunAsync(planningRun, packages, items, cancellationToken);
+        var saveResult = await store.SavePlanningRunAsync(planningRun, packages, items, cancellationToken);
+        if (saveResult.ExistingRun is not null)
+        {
+            return TryBuildIdempotencyOutcome(saveResult.ExistingRun, normalized.RequestHash)
+                ?? PlanningProcessingOutcome<PlanningRunResult>.Failed(IdempotencyConflict());
+        }
 
         return PlanningProcessingOutcome<PlanningRunResult>.Success(ToRunResult(planningRun, drafts));
     }
@@ -228,7 +252,9 @@ public sealed class PlanningService(IPlanningStore store) : IPlanningService
         var end = request.HorizonEndUtc ?? start.AddDays(DefaultHorizonDays);
         var horizon = string.IsNullOrWhiteSpace(request.Horizon) ? "two-week" : request.Horizon.Trim();
         var requestedBy = CleanOptional(request.RequestedBy) ?? "local-review";
+        var idempotencyKey = CleanOptional(request.IdempotencyKey);
 
+        RequireString(errors, "idempotencyKey", idempotencyKey, 160);
         RequireString(errors, "horizon", horizon, 80);
         RequireString(errors, "requestedBy", requestedBy, 120);
 
@@ -242,9 +268,15 @@ public sealed class PlanningService(IPlanningStore store) : IPlanningService
             AddError(errors, "horizonEndUtc", $"Must be within {MaximumHorizonDays.ToString(CultureInfo.InvariantCulture)} days of horizonStartUtc.");
         }
 
+        var requestHash = HashObject(new PlanningRunRequestFingerprint(
+            horizon,
+            start,
+            end,
+            requestedBy));
+
         return errors.Count > 0
-            ? new NormalizedCreatePlanningRunRequest(horizon, start, end, requestedBy, ValidationFailed(errors))
-            : new NormalizedCreatePlanningRunRequest(horizon, start, end, requestedBy, null);
+            ? new NormalizedCreatePlanningRunRequest(horizon, start, end, requestedBy, idempotencyKey ?? "", requestHash, ValidationFailed(errors))
+            : new NormalizedCreatePlanningRunRequest(horizon, start, end, requestedBy, idempotencyKey!, requestHash, null);
     }
 
     private static Dictionary<string, List<string>> ValidateDecisionRequest(RecordPackageDecisionRequest request)
@@ -532,6 +564,15 @@ public sealed class PlanningService(IPlanningStore store) : IPlanningService
         return new PlanningProblem(StatusNotFound, "Planning resource was not found.", detail, code);
     }
 
+    private static PlanningProblem IdempotencyConflict()
+    {
+        return new PlanningProblem(
+            StatusConflict,
+            "Planning idempotency conflict.",
+            "The idempotency key has already been used with a different planning request.",
+            "planning-idempotency-conflict");
+    }
+
     private static PlanningProblem ValidationFailed(Dictionary<string, List<string>> errors)
     {
         return new PlanningProblem(
@@ -545,6 +586,26 @@ public sealed class PlanningService(IPlanningStore store) : IPlanningService
     private static string BuildRunNumber(DateTimeOffset startedAtUtc)
     {
         return $"RUN-{startedAtUtc:yyyyMMddHHmmss}-{Guid.NewGuid():N}"[..31];
+    }
+
+    private static PlanningProcessingOutcome<PlanningRunResult>? TryBuildIdempotencyOutcome(
+        StoredPlanningRun? existing,
+        string requestHash)
+    {
+        if (existing is null)
+        {
+            return null;
+        }
+
+        return string.Equals(existing.RequestHash, requestHash, StringComparison.Ordinal)
+            ? PlanningProcessingOutcome<PlanningRunResult>.Success(ToRunResult(existing))
+            : PlanningProcessingOutcome<PlanningRunResult>.Failed(IdempotencyConflict());
+    }
+
+    private static string HashObject<T>(T value)
+    {
+        return Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(value, JsonOptions)))
+            .ToLowerInvariant();
     }
 
     private static void RequireString(
@@ -661,7 +722,15 @@ public sealed class PlanningService(IPlanningStore store) : IPlanningService
         DateTimeOffset HorizonStartUtc,
         DateTimeOffset HorizonEndUtc,
         string RequestedBy,
+        string IdempotencyKey,
+        string RequestHash,
         PlanningProblem? Problem);
+
+    private sealed record PlanningRunRequestFingerprint(
+        string Horizon,
+        DateTimeOffset HorizonStartUtc,
+        DateTimeOffset HorizonEndUtc,
+        string RequestedBy);
 
     private sealed record NormalizedWorkOrderQueryRequest(
         WorkOrderQuerySpec? Spec,

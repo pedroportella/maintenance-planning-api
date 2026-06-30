@@ -54,7 +54,7 @@ scripts/   quality guards, smoke checks and release-gate helpers
 - The local HTTP import path is source-system-shaped, not a real source-system connection.
 - Terraform defines a review environment, but live AWS deployment and smoke evidence are separate from this README.
 - EventBridge, SQS worker ingestion, DLQ replay and outbound EventBridge smoke are not claimed as exercised until a live review stack proves them.
-- Planning-run creation is deterministic but not currently retry-idempotent; client-supplied idempotency for that command is production-next hardening.
+- Planning-run creation supports client-supplied idempotency for safe local retry checks.
 - Production controls such as enterprise identity, restore drills, incident ownership, full observability, independent security review and resilience assurance remain production-next work.
 
 ## API Surface

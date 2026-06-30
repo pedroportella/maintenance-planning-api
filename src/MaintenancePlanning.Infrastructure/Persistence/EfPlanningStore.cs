@@ -62,7 +62,7 @@ internal sealed class EfPlanningStore(MaintenancePlanningDbContext dbContext) : 
             majorEvents);
     }
 
-    public async Task SavePlanningRunAsync(
+    public async Task<PlanningRunSaveResult> SavePlanningRunAsync(
         PlanningRun planningRun,
         IReadOnlyList<WorkOrderPackage> packages,
         IReadOnlyList<PackageItem> packageItems,
@@ -84,7 +84,33 @@ internal sealed class EfPlanningStore(MaintenancePlanningDbContext dbContext) : 
             CreatePlanningRunCompletedEvent(planningRun, packages, packageItems),
             cancellationToken);
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException) when (!string.IsNullOrWhiteSpace(planningRun.IdempotencyKey))
+        {
+            dbContext.ChangeTracker.Clear();
+            var existing = await FindPlanningRunByIdempotencyKeyAsync(planningRun.IdempotencyKey, cancellationToken);
+            if (existing is not null)
+            {
+                return PlanningRunSaveResult.Existing(existing);
+            }
+
+            throw;
+        }
+
+        return PlanningRunSaveResult.CreatedRun();
+    }
+
+    public async Task<StoredPlanningRun?> FindPlanningRunByIdempotencyKeyAsync(
+        string idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        var run = await PlanningRunQuery()
+            .SingleOrDefaultAsync(item => item.IdempotencyKey == idempotencyKey, cancellationToken);
+
+        return run is null ? null : ToStoredRun(run);
     }
 
     public Task<StoredPlanningRun?> FindPlanningRunAsync(
@@ -229,7 +255,15 @@ internal sealed class EfPlanningStore(MaintenancePlanningDbContext dbContext) : 
         Guid planningRunId,
         CancellationToken cancellationToken)
     {
-        var run = await dbContext.PlanningRuns
+        var run = await PlanningRunQuery()
+            .SingleOrDefaultAsync(item => item.Id == planningRunId, cancellationToken);
+
+        return run is null ? null : ToStoredRun(run);
+    }
+
+    private IQueryable<PlanningRun> PlanningRunQuery()
+    {
+        return dbContext.PlanningRuns
             .AsNoTracking()
             .Include(item => item.Packages)
             .ThenInclude(item => item.Items)
@@ -241,22 +275,24 @@ internal sealed class EfPlanningStore(MaintenancePlanningDbContext dbContext) : 
             .ThenInclude(item => item.FunctionalLocation)
             .Include(item => item.Packages)
             .ThenInclude(item => item.Decisions)
-            .AsSplitQuery()
-            .SingleOrDefaultAsync(item => item.Id == planningRunId, cancellationToken);
+            .AsSplitQuery();
+    }
 
-        return run is null
-            ? null
-            : new StoredPlanningRun(
-                run.Id,
-                run.RunNumber,
-                run.Status,
-                run.Horizon,
-                run.HorizonStartUtc,
-                run.HorizonEndUtc,
-                run.StartedAtUtc,
-                run.CompletedAtUtc,
-                run.RequestedBy,
-                run.Packages.OrderBy(item => item.PackageNumber).Select(ToStoredPackage).ToArray());
+    private static StoredPlanningRun ToStoredRun(PlanningRun run)
+    {
+        return new StoredPlanningRun(
+            run.Id,
+            run.RunNumber,
+            run.IdempotencyKey,
+            run.RequestHash,
+            run.Status,
+            run.Horizon,
+            run.HorizonStartUtc,
+            run.HorizonEndUtc,
+            run.StartedAtUtc,
+            run.CompletedAtUtc,
+            run.RequestedBy,
+            run.Packages.OrderBy(item => item.PackageNumber).Select(ToStoredPackage).ToArray());
     }
 
     private IQueryable<WorkOrderPackage> PackageQuery()

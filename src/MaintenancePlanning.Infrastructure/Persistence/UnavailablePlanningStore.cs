@@ -13,12 +13,17 @@ internal sealed class UnavailablePlanningStore : IPlanningStore
         CancellationToken cancellationToken) =>
         throw new InvalidOperationException("Planning persistence is not configured.");
 
-    public Task SavePlanningRunAsync(
+    public Task<PlanningRunSaveResult> SavePlanningRunAsync(
         PlanningRun planningRun,
         IReadOnlyList<WorkOrderPackage> packages,
         IReadOnlyList<PackageItem> packageItems,
         CancellationToken cancellationToken) =>
         throw new InvalidOperationException("Planning persistence is not configured.");
+
+    public Task<StoredPlanningRun?> FindPlanningRunByIdempotencyKeyAsync(
+        string idempotencyKey,
+        CancellationToken cancellationToken) =>
+        Task.FromResult<StoredPlanningRun?>(null);
 
     public Task<StoredPlanningRun?> FindPlanningRunAsync(
         Guid planningRunId,

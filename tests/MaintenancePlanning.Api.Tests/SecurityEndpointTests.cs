@@ -53,7 +53,10 @@ public sealed class SecurityEndpointTests
 
         var response = await host.Client.PostAsJsonAsync(
             "/api/v1/planning-runs",
-            new CreatePlanningRunRequest());
+            new CreatePlanningRunRequest
+            {
+                IdempotencyKey = "security-planning-write-negative"
+            });
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
@@ -173,10 +176,16 @@ public sealed class SecurityEndpointTests
 
         var first = await host.Client.PostAsJsonAsync(
             "/api/v1/planning-runs",
-            new CreatePlanningRunRequest());
+            new CreatePlanningRunRequest
+            {
+                IdempotencyKey = "security-rate-limit-first"
+            });
         var second = await host.Client.PostAsJsonAsync(
             "/api/v1/planning-runs",
-            new CreatePlanningRunRequest());
+            new CreatePlanningRunRequest
+            {
+                IdempotencyKey = "security-rate-limit-second"
+            });
 
         Assert.NotEqual(HttpStatusCode.TooManyRequests, first.StatusCode);
         Assert.Equal(HttpStatusCode.TooManyRequests, second.StatusCode);
@@ -196,7 +205,10 @@ public sealed class SecurityEndpointTests
     {
         return path switch
         {
-            "/api/v1/planning-runs" => new CreatePlanningRunRequest(),
+            "/api/v1/planning-runs" => new CreatePlanningRunRequest
+            {
+                IdempotencyKey = "security-protected-planning-command"
+            },
             "/api/v1/imports/source-work-orders" => new
             {
                 sourceSystem = "synthetic-source",

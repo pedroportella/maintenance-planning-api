@@ -117,6 +117,7 @@ Planning endpoints require database persistence to be configured. When persisten
 
 ```json
 {
+  "idempotencyKey": "planning-run-2026-01-15",
   "horizon": "two-week",
   "horizonStartUtc": "2026-01-15T00:00:00Z",
   "horizonEndUtc": "2026-01-29T00:00:00Z",
@@ -124,7 +125,7 @@ Planning endpoints require database persistence to be configured. When persisten
 }
 ```
 
-Planning-run creation is deterministic for the same imported source state, but it is not currently a retry-idempotent command. Client-supplied idempotency for planning-run creation is a production-next hardening item.
+`idempotencyKey` is required and may be up to 160 characters. Reusing the same key with the same effective request returns the original planning run without creating duplicate packages or completion outbox records. Reusing the same key with a different effective request returns `409`. Invalid request shape returns `422`.
 
 `GET /api/v1/planning-runs/{id}` returns the run status, horizon and recommendation counts.
 

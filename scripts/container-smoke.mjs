@@ -122,6 +122,7 @@ async function checkProtectedRoutes() {
       path: "/api/v1/planning-runs",
       token: tokens.plannerWrite,
       body: {
+        idempotencyKey: `container-planning-${Date.now()}`,
         horizonStartUtc: "2026-01-15T00:00:00Z",
         horizonEndUtc: "2026-01-29T00:00:00Z",
         requestedBy: "container-smoke"

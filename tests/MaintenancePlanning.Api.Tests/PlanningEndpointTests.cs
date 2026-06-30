@@ -24,6 +24,7 @@ public sealed class PlanningEndpointTests
             "/api/v1/planning-runs",
             new CreatePlanningRunRequest
             {
+                IdempotencyKey = "planning-run-create-recommendations",
                 Horizon = "two-week",
                 HorizonStartUtc = ReferenceTime,
                 HorizonEndUtc = ReferenceTime.AddDays(14),
@@ -53,6 +54,101 @@ public sealed class PlanningEndpointTests
     }
 
     [Fact]
+    public async Task PlanningRuns_ReplayDuplicateRequestWithSameIdempotencyKey()
+    {
+        var store = InMemoryPlanningStore.WithDefaultCandidates();
+        await using var host = await TestApiHost.StartAsync(builder =>
+        {
+            builder.Services.AddSingleton<IPlanningStore>(store);
+        });
+        var request = new CreatePlanningRunRequest
+        {
+            IdempotencyKey = "planning-run-replay",
+            Horizon = "two-week",
+            HorizonStartUtc = ReferenceTime,
+            HorizonEndUtc = ReferenceTime.AddDays(14),
+            RequestedBy = "planner-review"
+        };
+
+        var firstResponse = await host.Client.PostAsJsonAsync("/api/v1/planning-runs", request);
+        var secondResponse = await host.Client.PostAsJsonAsync("/api/v1/planning-runs", request);
+        var first = await firstResponse.Content.ReadFromJsonAsync<PlanningRunResult>();
+        var second = await secondResponse.Content.ReadFromJsonAsync<PlanningRunResult>();
+
+        Assert.Equal(HttpStatusCode.Accepted, firstResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, secondResponse.StatusCode);
+        Assert.NotNull(first);
+        Assert.NotNull(second);
+        Assert.Equal(first.Id, second.Id);
+        Assert.Equal(first.RunNumber, second.RunNumber);
+        Assert.Equal(1, store.PlanningRunCount);
+        Assert.Equal(1, store.PlanningRunCompletedOutboxEventCount);
+    }
+
+    [Fact]
+    public async Task PlanningRuns_ReturnConflict_WhenIdempotencyKeyHasDifferentRequest()
+    {
+        var store = InMemoryPlanningStore.WithDefaultCandidates();
+        await using var host = await TestApiHost.StartAsync(builder =>
+        {
+            builder.Services.AddSingleton<IPlanningStore>(store);
+        });
+        var firstRequest = new CreatePlanningRunRequest
+        {
+            IdempotencyKey = "planning-run-conflict",
+            HorizonStartUtc = ReferenceTime,
+            HorizonEndUtc = ReferenceTime.AddDays(14)
+        };
+        var secondRequest = new CreatePlanningRunRequest
+        {
+            IdempotencyKey = "planning-run-conflict",
+            HorizonStartUtc = ReferenceTime,
+            HorizonEndUtc = ReferenceTime.AddDays(21)
+        };
+
+        var firstResponse = await host.Client.PostAsJsonAsync("/api/v1/planning-runs", firstRequest);
+        var secondResponse = await host.Client.PostAsJsonAsync("/api/v1/planning-runs", secondRequest);
+        var body = await secondResponse.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.Accepted, firstResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, secondResponse.StatusCode);
+        Assert.Contains("application/problem+json", secondResponse.Content.Headers.ContentType?.MediaType, StringComparison.Ordinal);
+        Assert.Contains("\"code\":\"planning-idempotency-conflict\"", body, StringComparison.Ordinal);
+        Assert.Equal(1, store.PlanningRunCount);
+        Assert.Equal(1, store.PlanningRunCompletedOutboxEventCount);
+    }
+
+    [Fact]
+    public async Task PlanningRuns_CoalesceRapidDuplicateRequests()
+    {
+        var store = InMemoryPlanningStore.WithDefaultCandidates();
+        await using var host = await TestApiHost.StartAsync(builder =>
+        {
+            builder.Services.AddSingleton<IPlanningStore>(store);
+        });
+        var request = new CreatePlanningRunRequest
+        {
+            IdempotencyKey = "planning-run-concurrent",
+            Horizon = "two-week",
+            HorizonStartUtc = ReferenceTime,
+            HorizonEndUtc = ReferenceTime.AddDays(14),
+            RequestedBy = "planner-review"
+        };
+
+        var responses = await Task.WhenAll(Enumerable
+            .Range(0, 8)
+            .Select(_ => host.Client.PostAsJsonAsync("/api/v1/planning-runs", request)));
+        var runs = await Task.WhenAll(responses.Select(item => item.Content.ReadFromJsonAsync<PlanningRunResult>()));
+
+        Assert.All(responses, item => Assert.Equal(HttpStatusCode.Accepted, item.StatusCode));
+        Assert.All(runs, Assert.NotNull);
+        var runIds = runs.Select(item => item!.Id).Distinct().ToArray();
+        Assert.Single(runIds);
+        Assert.Equal(1, store.PlanningRunCount);
+        Assert.Equal(1, store.PlanningRunCompletedOutboxEventCount);
+    }
+
+    [Fact]
     public async Task PackageDecisions_PersistDecisionAuditAndUpdatePackageStatus()
     {
         var store = InMemoryPlanningStore.WithDefaultCandidates();
@@ -64,6 +160,7 @@ public sealed class PlanningEndpointTests
             "/api/v1/planning-runs",
             new CreatePlanningRunRequest
             {
+                IdempotencyKey = "planning-run-package-decision",
                 HorizonStartUtc = ReferenceTime,
                 HorizonEndUtc = ReferenceTime.AddDays(14)
             });
@@ -112,6 +209,7 @@ public sealed class PlanningEndpointTests
             "/api/v1/planning-runs",
             new CreatePlanningRunRequest
             {
+                IdempotencyKey = "planning-run-invalid-decision",
                 HorizonStartUtc = ReferenceTime,
                 HorizonEndUtc = ReferenceTime.AddDays(14)
             });
@@ -145,6 +243,7 @@ public sealed class PlanningEndpointTests
             "/api/v1/planning-runs",
             new CreatePlanningRunRequest
             {
+                IdempotencyKey = "planning-run-persistence-unconfigured",
                 HorizonStartUtc = ReferenceTime,
                 HorizonEndUtc = ReferenceTime.AddDays(14)
             });
@@ -239,8 +338,11 @@ public sealed class PlanningEndpointTests
     {
         private readonly List<PlanningWorkOrderSnapshot> _workOrders;
         private readonly List<PlanningMajorEventSnapshot> _majorEvents;
+        private readonly object _sync = new();
         private readonly Dictionary<Guid, StoredPlanningRun> _runs = new();
         private readonly Dictionary<Guid, StoredPlanningPackage> _packages = new();
+        private readonly Dictionary<string, Guid> _runIdsByIdempotencyKey = new(StringComparer.Ordinal);
+        private int _planningRunCompletedOutboxEventCount;
 
         private InMemoryPlanningStore(
             IReadOnlyList<PlanningWorkOrderSnapshot> workOrders,
@@ -251,6 +353,28 @@ public sealed class PlanningEndpointTests
         }
 
         public bool IsConfigured => true;
+
+        public int PlanningRunCount
+        {
+            get
+            {
+                lock (_sync)
+                {
+                    return _runs.Count;
+                }
+            }
+        }
+
+        public int PlanningRunCompletedOutboxEventCount
+        {
+            get
+            {
+                lock (_sync)
+                {
+                    return _planningRunCompletedOutboxEventCount;
+                }
+            }
+        }
 
         public static InMemoryPlanningStore WithDefaultCandidates()
         {
@@ -312,51 +436,89 @@ public sealed class PlanningEndpointTests
                 _majorEvents));
         }
 
-        public Task SavePlanningRunAsync(
+        public Task<PlanningRunSaveResult> SavePlanningRunAsync(
             PlanningRun planningRun,
             IReadOnlyList<WorkOrderPackage> packages,
             IReadOnlyList<PackageItem> packageItems,
             CancellationToken cancellationToken)
         {
-            var storedPackages = packages
-                .OrderBy(item => item.PackageNumber, StringComparer.Ordinal)
-                .Select(package => ToStoredPackage(package, packageItems))
-                .ToArray();
-            var storedRun = new StoredPlanningRun(
-                planningRun.Id,
-                planningRun.RunNumber,
-                planningRun.Status,
-                planningRun.Horizon,
-                planningRun.HorizonStartUtc,
-                planningRun.HorizonEndUtc,
-                planningRun.StartedAtUtc,
-                planningRun.CompletedAtUtc,
-                planningRun.RequestedBy,
-                storedPackages);
-
-            _runs[storedRun.Id] = storedRun;
-            foreach (var package in storedPackages)
+            lock (_sync)
             {
-                _packages[package.Id] = package;
-            }
+                if (!string.IsNullOrWhiteSpace(planningRun.IdempotencyKey)
+                    && _runIdsByIdempotencyKey.TryGetValue(planningRun.IdempotencyKey, out var existingRunId))
+                {
+                    return Task.FromResult(PlanningRunSaveResult.Existing(_runs[existingRunId]));
+                }
 
-            return Task.CompletedTask;
+                var storedPackages = packages
+                    .OrderBy(item => item.PackageNumber, StringComparer.Ordinal)
+                    .Select(package => ToStoredPackage(package, packageItems))
+                    .ToArray();
+                var storedRun = new StoredPlanningRun(
+                    planningRun.Id,
+                    planningRun.RunNumber,
+                    planningRun.IdempotencyKey,
+                    planningRun.RequestHash,
+                    planningRun.Status,
+                    planningRun.Horizon,
+                    planningRun.HorizonStartUtc,
+                    planningRun.HorizonEndUtc,
+                    planningRun.StartedAtUtc,
+                    planningRun.CompletedAtUtc,
+                    planningRun.RequestedBy,
+                    storedPackages);
+
+                _runs[storedRun.Id] = storedRun;
+                if (!string.IsNullOrWhiteSpace(storedRun.IdempotencyKey))
+                {
+                    _runIdsByIdempotencyKey[storedRun.IdempotencyKey] = storedRun.Id;
+                }
+
+                foreach (var package in storedPackages)
+                {
+                    _packages[package.Id] = package;
+                }
+
+                _planningRunCompletedOutboxEventCount++;
+                return Task.FromResult(PlanningRunSaveResult.CreatedRun());
+            }
+        }
+
+        public Task<StoredPlanningRun?> FindPlanningRunByIdempotencyKeyAsync(
+            string idempotencyKey,
+            CancellationToken cancellationToken)
+        {
+            lock (_sync)
+            {
+                if (!_runIdsByIdempotencyKey.TryGetValue(idempotencyKey, out var runId))
+                {
+                    return Task.FromResult<StoredPlanningRun?>(null);
+                }
+
+                return Task.FromResult<StoredPlanningRun?>(_runs[runId]);
+            }
         }
 
         public Task<StoredPlanningRun?> FindPlanningRunAsync(
             Guid planningRunId,
             CancellationToken cancellationToken)
         {
-            _runs.TryGetValue(planningRunId, out var run);
-            return Task.FromResult(run);
+            lock (_sync)
+            {
+                _runs.TryGetValue(planningRunId, out var run);
+                return Task.FromResult(run);
+            }
         }
 
         public Task<StoredPlanningRun?> FindPlanningRunWithRecommendationsAsync(
             Guid planningRunId,
             CancellationToken cancellationToken)
         {
-            _runs.TryGetValue(planningRunId, out var run);
-            return Task.FromResult(run);
+            lock (_sync)
+            {
+                _runs.TryGetValue(planningRunId, out var run);
+                return Task.FromResult(run);
+            }
         }
 
         public Task<StoredPlanningPackage?> FindPackageAsync(

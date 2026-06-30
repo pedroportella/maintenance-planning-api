@@ -138,7 +138,12 @@ public sealed class MaintenancePlanningDbContext(DbContextOptions<MaintenancePla
         entity.ToTable("planning_runs");
         entity.HasKey(item => item.Id);
         entity.HasIndex(item => item.RunNumber).IsUnique();
+        entity.HasIndex(item => item.IdempotencyKey)
+            .IsUnique()
+            .HasFilter("[IdempotencyKey] IS NOT NULL");
         entity.Property(item => item.RunNumber).HasMaxLength(80);
+        entity.Property(item => item.IdempotencyKey).HasMaxLength(160);
+        entity.Property(item => item.RequestHash).HasMaxLength(128);
         entity.Property(item => item.Status).HasConversion<string>().HasMaxLength(40);
         entity.Property(item => item.Horizon).HasMaxLength(80);
         entity.Property(item => item.RequestedBy).HasMaxLength(120);
