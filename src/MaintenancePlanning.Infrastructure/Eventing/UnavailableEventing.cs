@@ -36,6 +36,9 @@ internal sealed class UnavailableOutboxStore : IOutboxStore
         CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<OutboxMessage>>(Array.Empty<OutboxMessage>());
 
+    public Task<OutboxPostureSummary> CheckPostureAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(new OutboxPostureSummary(0, 0, null));
+
     public Task MarkPublishedAsync(
         Guid outboxEventId,
         DateTimeOffset publishedAtUtc,

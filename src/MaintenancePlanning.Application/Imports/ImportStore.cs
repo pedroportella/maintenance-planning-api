@@ -13,6 +13,10 @@ public interface IImportStore
 
     Task<StoredImport?> FindLatestFailedImportAsync(CancellationToken cancellationToken);
 
+    Task<StaleReceivedImportSummary> CountStaleReceivedImportsAsync(
+        DateTimeOffset staleBeforeUtc,
+        CancellationToken cancellationToken);
+
     Task<bool> HasEventIdempotencyKeyAsync(
         string sourceSystem,
         string idempotencyKey,
@@ -55,6 +59,10 @@ public sealed record StoredImport(
     DateTimeOffset ReceivedAtUtc,
     DateTimeOffset? CompletedAtUtc,
     IReadOnlyList<ImportEventResult> Events);
+
+public sealed record StaleReceivedImportSummary(
+    int Count,
+    DateTimeOffset? OldestReceivedAtUtc);
 
 public sealed record StoredSourceRecord(
     string SourceSystem,

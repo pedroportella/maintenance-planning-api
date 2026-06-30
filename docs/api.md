@@ -22,7 +22,7 @@ Errors should use `application/problem+json` with a correlation identifier.
 
 `GET /api/v1/operations/migration-readiness` reports whether SQL Server is configured, reachable and up to date with EF Core migrations. It does not apply migrations.
 
-`GET /api/v1/operations/posture` reports whether import persistence is configured and, when available, the latest import freshness summary. When eventing is configured, it also reports approximate work-queue and dead-letter counts plus the latest queued-event ingestion failure code recorded in import audit.
+`GET /api/v1/operations/posture` reports whether import persistence is configured and, when available, the latest import freshness summary, stale `Received` import count and database-backed outbox pending/failed counts. When eventing is configured, it also reports approximate work-queue and dead-letter counts plus the latest queued-event ingestion failure code recorded in import audit.
 
 `POST /api/v1/operations/eventing/dead-letter-replays` starts a dead-letter queue replay command when eventing and replay audit storage are configured. It requires operations role or scope and records a replay audit before the queue replay call. A successful call updates the audit to `Completed` before returning `202 Accepted`; if the queue replay call fails after the audit is recorded, the audit is updated to `Failed` with `dead-letter-replay-start-failed`:
 

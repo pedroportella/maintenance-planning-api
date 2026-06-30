@@ -138,6 +138,20 @@ public sealed class DeadLetterReplayServiceTests
                 .FirstOrDefault());
         }
 
+        public Task<StaleReceivedImportSummary> CountStaleReceivedImportsAsync(
+            DateTimeOffset staleBeforeUtc,
+            CancellationToken cancellationToken)
+        {
+            var staleImports = Imports
+                .Where(item => item.Status == "Received" && item.ReceivedAtUtc < staleBeforeUtc)
+                .OrderBy(item => item.ReceivedAtUtc)
+                .ToArray();
+
+            return Task.FromResult(new StaleReceivedImportSummary(
+                staleImports.Length,
+                staleImports.FirstOrDefault()?.ReceivedAtUtc));
+        }
+
         public Task<bool> HasEventIdempotencyKeyAsync(
             string sourceSystem,
             string idempotencyKey,

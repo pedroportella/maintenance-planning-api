@@ -16,6 +16,8 @@ public interface IOutboxStore
         DateTimeOffset dueAtUtc,
         CancellationToken cancellationToken);
 
+    Task<OutboxPostureSummary> CheckPostureAsync(CancellationToken cancellationToken);
+
     Task MarkPublishedAsync(
         Guid outboxEventId,
         DateTimeOffset publishedAtUtc,
@@ -45,6 +47,11 @@ public sealed record OutboxMessage(
     Guid AggregateId,
     string PayloadJson,
     int AttemptCount);
+
+public sealed record OutboxPostureSummary(
+    int PendingCount,
+    int FailedCount,
+    string? LastFailureCode);
 
 public sealed record OutboxDispatchResult(
     string Status,

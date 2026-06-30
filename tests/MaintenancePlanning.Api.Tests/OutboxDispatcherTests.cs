@@ -141,6 +141,11 @@ public sealed class OutboxDispatcherTests
             return Task.FromResult<IReadOnlyList<OutboxMessage>>(_messages.Take(maxEvents).ToArray());
         }
 
+        public Task<OutboxPostureSummary> CheckPostureAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new OutboxPostureSummary(_messages.Count, 0, null));
+        }
+
         public Task MarkPublishedAsync(
             Guid outboxEventId,
             DateTimeOffset publishedAtUtc,

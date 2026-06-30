@@ -9,7 +9,7 @@ Production work would require:
 - full observability and alert routing;
 - separate planner read/write authorization policies where production roles require that split;
 - stricter outbox/replay audit semantics;
-- stale-import and outbound outbox counts in operations posture;
+- alerting and remediation workflows for stale imports, failed outbox records and dead-letter growth;
 - SBOM and provenance attestations, image signing and registry vulnerability scanning;
 - threat modelling and independent security review;
 - incident, ownership and cost-management processes.

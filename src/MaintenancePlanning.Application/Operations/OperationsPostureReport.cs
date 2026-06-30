@@ -5,7 +5,9 @@ public sealed record OperationsPostureReport(
     string Status,
     string? IssueCode,
     LatestImportFreshness? LatestImport,
+    StaleReceivedImportPosture StaleReceivedImports,
     IntegrationEventingPosture Eventing,
+    OutboundOutboxPosture Outbox,
     DateTimeOffset CheckedAtUtc);
 
 public sealed record LatestImportFreshness(
@@ -22,8 +24,20 @@ public sealed record LatestImportFreshness(
     DateTimeOffset ReceivedAtUtc,
     DateTimeOffset? CompletedAtUtc);
 
+public sealed record StaleReceivedImportPosture(
+    int Count,
+    int ThresholdMinutes,
+    DateTimeOffset StaleBeforeUtc,
+    DateTimeOffset? OldestReceivedAtUtc);
+
 public sealed record IntegrationEventingPosture(
     string PublishMode,
     int QueueDepth,
     int DeadLetterCount,
+    string? LastFailureCode);
+
+public sealed record OutboundOutboxPosture(
+    bool Configured,
+    int PendingCount,
+    int FailedCount,
     string? LastFailureCode);

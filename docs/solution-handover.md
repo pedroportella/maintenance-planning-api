@@ -8,7 +8,7 @@ Last updated: 2026-06-24.
 
 This is a three-repo synthetic maintenance-planning vertical slice:
 
-- `Planner API (API)` owns imports, persistence, planning recommendations, planner decisions, audit, operations posture, worker ingestion, replay, outbound events and review infrastructure.
+- `Planner API (API)` owns imports, persistence, planning recommendations, planner decisions, audit, operations posture, worker ingestion, replay, outbound event code paths and review infrastructure.
 - `Simulator API (Simulator)` produces deterministic source-system-shaped events for local HTTP feed checks and explicit EventBridge publish checks.
 - `Planner Workbench (Web)` presents the planner workflow through deterministic mock mode by default and server-side backend mode when the API has been seeded. Its current UI is assembled through a Radix-backed local adapter system with Sass theme entrypoints and separated component and route visual evidence.
 
@@ -72,6 +72,7 @@ Use the repo-level runbooks for full Docker, SQL Server, backend-mode web and AW
 - SQL Server persistence through explicit EF Core migrations.
 - Idempotent import handling, recommendation generation, planner decision audit and transactional outbox records.
 - Worker, EventBridge, SQS, DLQ and outbound dispatch code paths prepared for review infrastructure.
+- Operations posture over source freshness, stale `Received` imports, queue/DLQ counts and database-backed outbox pending/failed counts.
 - Deterministic simulator scenario packs, schema validation, local feed mode, API smoke and confirmation-gated EventBridge publish mode.
 - Next.js planner workbench with typed service adapters, deterministic mock mode, backend mode, Radix-backed UI adapters, reviewer pack, separated UI-library and route-wide visual evidence checks and browser-bundle leakage guards.
 - Terraform review infrastructure, migration-runner task definitions and release-gate scripts.
@@ -105,7 +106,7 @@ The smallest credible live review path is:
 4. Check API health, readiness, OpenAPI and web liveness through review endpoints.
 5. Publish the deterministic `baseline-week` scenario from the simulator to EventBridge with explicit confirmation.
 6. Verify EventBridge to SQS delivery, worker consumption into SQL Server projections and idempotent retry behaviour.
-7. Check operations posture for freshness, queue depth and dead-letter state.
+7. Check operations posture for source freshness, stale `Received` imports, queue depth, dead-letter state and outbox pending/failed counts.
 8. Run protected DLQ replay and outbound EventBridge smoke only when the review stack is safe to mutate.
 
 The review stack should be short-lived and torn down after evidence capture.

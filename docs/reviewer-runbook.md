@@ -1,6 +1,6 @@
 # Reviewer Runbook
 
-Current state: .NET API and event ingestion/outbox worker with health endpoints, OpenAPI JSON, safe errors, tests, SQL Server persistence through EF Core migrations, local HTTP import contracts for synthetic source-system-shaped events, planner work-order query routes, local review auth policies, command rate limiting, operations-protected dead-letter replay, EventBridge/SQS review wiring, outbound EventBridge dispatch, a simulator EventBridge publish task definition and containerised API, worker and migration-runner runtime paths.
+Current state: .NET API and event ingestion/outbox worker with health endpoints, OpenAPI JSON, safe errors, tests, SQL Server persistence through EF Core migrations, local HTTP import contracts for synthetic source-system-shaped events, planner work-order query routes, local review auth policies, command rate limiting, operations posture for stale imports and outbox counts, operations-protected dead-letter replay, EventBridge/SQS review wiring, outbound EventBridge dispatch code, a simulator EventBridge publish task definition and containerised API, worker and migration-runner runtime paths.
 
 ## Cross-Repo Review Path
 
@@ -17,7 +17,7 @@ Smallest credible live AWS review path:
 4. Check API and web health through the review endpoints without exposing private backend origins to the browser.
 5. Publish the deterministic simulator scenario to EventBridge with explicit confirmation.
 6. Confirm worker consumption into SQL Server projections and verify idempotent retry behaviour.
-7. Check operations posture for freshness, queue depth and dead-letter state.
+7. Check operations posture for source freshness, stale `Received` imports, queue depth, dead-letter state and outbox pending/failed counts.
 8. If the review stack is safe to mutate, run a protected dead-letter replay smoke and one outbound event dispatch smoke with synthetic records.
 
 No live AWS deployment, simulator publish, worker consumption, SQL projection, dead-letter replay or outbound EventBridge smoke has been run from this repository state.
@@ -45,6 +45,8 @@ node scripts/database-smoke.mjs
 ```
 
 The smoke starts an isolated local SQL Server compose project, applies EF Core migrations explicitly, starts the API with database configuration, checks `/health/ready`, checks protected `/api/v1/operations/migration-readiness` with the synthetic reviewer token, then removes the isolated compose resources.
+
+The operations posture route is also available locally at `/api/v1/operations/posture`. It reports the latest import freshness, stale `Received` import count, inbound queue and dead-letter counts when configured, and database-backed outbox pending/failed counts. These values are local posture signals, not live AWS evidence by themselves.
 
 ## Container Smoke
 
@@ -74,7 +76,7 @@ terraform -chdir=infra/aws init -backend-config=backend.hcl
 terraform -chdir=infra/aws plan -var-file=review.auto.tfvars
 ```
 
-Terraform defines infrastructure and task definitions only. It does not execute database migrations. The migration task should be run by release orchestration after the migration-runner image exists. EventBridge, SQS, the dead-letter queue, the worker service definition, outbound dispatch permissions and the simulator publish task are provisioned for review, but live synthetic event publish, dead-letter replay and outbound publish smokes have not been run from this repository state.
+Terraform defines infrastructure and task definitions only. It does not execute database migrations. The migration task should be run by release orchestration after the migration-runner image exists. EventBridge, SQS, the dead-letter queue, the worker service definition, outbound dispatch permissions and the simulator publish task are provisioned for review, but live synthetic event publish, worker consumption, dead-letter replay and outbound publish smokes have not been run from this repository state.
 
 ## Migration Release Gate
 
@@ -100,7 +102,7 @@ That local path proves:
 3. idempotent replay of the same import;
 4. planning-run and recommendation generation;
 5. package decision audit;
-6. operations posture over the imported synthetic data;
+6. operations posture over the imported synthetic data, including stale-import and outbox summaries;
 7. server-side backend-mode web rendering over the local API.
 
 It does not prove the live AWS EventBridge, SQS, worker, DLQ replay or outbound EventBridge path. Keep those as separate review checks.

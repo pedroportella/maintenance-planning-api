@@ -109,6 +109,25 @@ internal sealed class EfImportStore(MaintenancePlanningDbContext dbContext) : II
                 Array.Empty<ImportEventResult>());
     }
 
+    public async Task<StaleReceivedImportSummary> CountStaleReceivedImportsAsync(
+        DateTimeOffset staleBeforeUtc,
+        CancellationToken cancellationToken)
+    {
+        var staleImports = dbContext.IntegrationImports
+            .AsNoTracking()
+            .Where(item =>
+                item.Status == IntegrationImportStatus.Received
+                && item.ReceivedAtUtc < staleBeforeUtc);
+
+        var count = await staleImports.CountAsync(cancellationToken);
+        var oldestReceivedAtUtc = await staleImports
+            .OrderBy(item => item.ReceivedAtUtc)
+            .Select(item => (DateTimeOffset?)item.ReceivedAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return new StaleReceivedImportSummary(count, oldestReceivedAtUtc);
+    }
+
     public Task<bool> HasEventIdempotencyKeyAsync(
         string sourceSystem,
         string idempotencyKey,

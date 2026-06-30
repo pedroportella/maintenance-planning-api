@@ -8,6 +8,10 @@ namespace MaintenancePlanning.Api.Endpoints;
 
 public static class OperationsEndpoints
 {
+    private const int DefaultStaleReceivedImportThresholdMinutes = 30;
+    private const string StaleReceivedImportThresholdKey =
+        "MaintenancePlanning:Operations:StaleReceivedImportThresholdMinutes";
+
     public static IEndpointRouteBuilder MapOperationsEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var operations = endpoints
@@ -58,21 +62,32 @@ public static class OperationsEndpoints
 
     private static async Task<IResult> GetPostureAsync(
         IImportStore importStore,
+        IOutboxStore outboxStore,
         IEventingPostureReporter eventingPostureReporter,
+        IConfiguration configuration,
         CancellationToken cancellationToken)
     {
+        var checkedAtUtc = DateTimeOffset.UtcNow;
+        var staleThresholdMinutes = GetStaleReceivedImportThresholdMinutes(configuration);
+        var staleBeforeUtc = checkedAtUtc.AddMinutes(-staleThresholdMinutes);
         var latestImport = importStore.IsConfigured
             ? await importStore.FindLatestImportAsync(cancellationToken)
             : null;
         var latestFailedImport = importStore.IsConfigured
             ? await importStore.FindLatestFailedImportAsync(cancellationToken)
             : null;
+        var staleReceivedImports = importStore.IsConfigured
+            ? await importStore.CountStaleReceivedImportsAsync(staleBeforeUtc, cancellationToken)
+            : new StaleReceivedImportSummary(0, null);
+        var outboxPosture = outboxStore.IsConfigured
+            ? await outboxStore.CheckPostureAsync(cancellationToken)
+            : new OutboxPostureSummary(0, 0, null);
         var eventingPosture = await eventingPostureReporter.CheckAsync(cancellationToken);
 
         return Results.Ok(new OperationsPostureReport(
             DatabaseConfigured: importStore.IsConfigured,
-            Status: importStore.IsConfigured ? "healthy" : "degraded",
-            IssueCode: importStore.IsConfigured ? null : "import-persistence-not-configured",
+            Status: GetPostureStatus(importStore.IsConfigured, staleReceivedImports, outboxPosture),
+            IssueCode: GetPostureIssueCode(importStore.IsConfigured, staleReceivedImports, outboxPosture),
             LatestImport: latestImport is null
                 ? null
                 : new LatestImportFreshness(
@@ -88,11 +103,59 @@ public static class OperationsEndpoints
                     latestImport.IgnoredStaleCount,
                     latestImport.ReceivedAtUtc,
                     latestImport.CompletedAtUtc),
+            StaleReceivedImports: new StaleReceivedImportPosture(
+                staleReceivedImports.Count,
+                staleThresholdMinutes,
+                staleBeforeUtc,
+                staleReceivedImports.OldestReceivedAtUtc),
             Eventing: eventingPosture with
             {
                 LastFailureCode = latestFailedImport?.FailureCode ?? eventingPosture.LastFailureCode
             },
-            CheckedAtUtc: DateTimeOffset.UtcNow));
+            Outbox: new OutboundOutboxPosture(
+                outboxStore.IsConfigured,
+                outboxPosture.PendingCount,
+                outboxPosture.FailedCount,
+                outboxPosture.LastFailureCode),
+            CheckedAtUtc: checkedAtUtc));
+    }
+
+    private static int GetStaleReceivedImportThresholdMinutes(IConfiguration configuration)
+    {
+        var configuredValue = configuration.GetValue<int?>(StaleReceivedImportThresholdKey)
+            ?? DefaultStaleReceivedImportThresholdMinutes;
+
+        return Math.Clamp(configuredValue, 1, 1440);
+    }
+
+    private static string GetPostureStatus(
+        bool databaseConfigured,
+        StaleReceivedImportSummary staleReceivedImports,
+        OutboxPostureSummary outboxPosture)
+    {
+        return databaseConfigured && staleReceivedImports.Count == 0 && outboxPosture.FailedCount == 0
+            ? "healthy"
+            : "degraded";
+    }
+
+    private static string? GetPostureIssueCode(
+        bool databaseConfigured,
+        StaleReceivedImportSummary staleReceivedImports,
+        OutboxPostureSummary outboxPosture)
+    {
+        if (!databaseConfigured)
+        {
+            return "import-persistence-not-configured";
+        }
+
+        if (staleReceivedImports.Count > 0)
+        {
+            return "stale-received-imports";
+        }
+
+        return outboxPosture.FailedCount > 0
+            ? "outbox-failed-events"
+            : null;
     }
 
     private static async Task<IResult> StartDeadLetterReplayAsync(

@@ -29,6 +29,26 @@ internal sealed class EfOutboxStore(MaintenancePlanningDbContext dbContext) : IO
             .ToArrayAsync(cancellationToken);
     }
 
+    public async Task<OutboxPostureSummary> CheckPostureAsync(CancellationToken cancellationToken)
+    {
+        var pendingCount = await dbContext.OutboxEvents
+            .AsNoTracking()
+            .CountAsync(item => item.Status == OutboxEventStatus.Pending, cancellationToken);
+
+        var failedEvents = dbContext.OutboxEvents
+            .AsNoTracking()
+            .Where(item => item.Status == OutboxEventStatus.Failed);
+
+        var failedCount = await failedEvents.CountAsync(cancellationToken);
+        var lastFailureCode = await failedEvents
+            .OrderByDescending(item => item.AvailableAtUtc)
+            .ThenByDescending(item => item.CreatedAtUtc)
+            .Select(item => item.LastErrorCode)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return new OutboxPostureSummary(pendingCount, failedCount, lastFailureCode);
+    }
+
     public async Task MarkPublishedAsync(
         Guid outboxEventId,
         DateTimeOffset publishedAtUtc,

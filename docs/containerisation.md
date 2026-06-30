@@ -101,7 +101,7 @@ The event ingestion worker has a separate Dockerfile, [Dockerfile.worker](../Doc
 node scripts/worker-container-build.mjs
 ```
 
-The worker image runs `MaintenancePlanning.Worker.dll`, polls the configured SQS work queue, processes EventBridge-delivered synthetic maintenance events through the same import contract as the API, deletes only messages that were processed or safely audited as invalid, and dispatches pending outbound outbox events to EventBridge when an event bus is configured. Runtime queue identifiers, event bus name and database passwords are task-definition configuration and Secrets Manager values, not image build inputs.
+The worker image runs `MaintenancePlanning.Worker.dll`, polls the configured SQS work queue, processes EventBridge-delivered synthetic maintenance events through the same import contract as the API, deletes only messages that were processed or safely audited as invalid, and dispatches pending outbound outbox events to EventBridge when an event bus is configured. Runtime queue identifiers, event bus name and database passwords are task-definition configuration and Secrets Manager values, not image build inputs. Local worker image builds prove the runtime can be packaged; EventBridge/SQS consumption and outbound publish evidence still require the separate live review smoke.
 
 ## Secrets And Build Inputs
 
