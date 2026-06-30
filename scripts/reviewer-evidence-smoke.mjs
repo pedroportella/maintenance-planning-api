@@ -17,6 +17,7 @@ const requiredFiles = [
   "docs/production-next.md",
   "docs/release-gate.md",
   "docs/reviewer-runbook.md",
+  "docs/runtime-upgrade-policy.md",
   "docs/security-and-operations.md",
   "contracts/planning-run-completed.schema.json",
   "contracts/package-decision-recorded.schema.json",
@@ -33,8 +34,21 @@ const requiredReadmeText = [
   "docs/release-gate.md",
   "docs/production-next.md",
   "docs/reviewer-runbook.md",
+  "docs/runtime-upgrade-policy.md",
   "docs/security-and-operations.md",
   "synthetic"
+];
+
+const requiredRuntimePolicyText = [
+  { filePath: "Directory.Build.props", expected: "<TargetFramework>net8.0</TargetFramework>" },
+  { filePath: "global.json", expected: "\"rollForward\": \"latestPatch\"" },
+  { filePath: ".config/dotnet-tools.json", expected: "\"version\": \"8.0.28\"" },
+  { filePath: "Dockerfile", expected: "ARG DOTNET_IMAGE_TAG=8.0-bookworm-slim" },
+  { filePath: "Dockerfile.worker", expected: "ARG DOTNET_IMAGE_TAG=8.0-bookworm-slim" },
+  { filePath: "Dockerfile.migrations", expected: "ARG DOTNET_IMAGE_TAG=8.0-bookworm-slim" },
+  { filePath: "docs/runtime-upgrade-policy.md", expected: "`net8.0`" },
+  { filePath: "docs/runtime-upgrade-policy.md", expected: "`latestPatch`" },
+  { filePath: "docs/runtime-upgrade-policy.md", expected: "`DOTNET_IMAGE_TAG=8.0-bookworm-slim`" }
 ];
 
 const failures = [];
@@ -51,6 +65,18 @@ if (existsSync("README.md")) {
     if (!readme.includes(expected)) {
       failures.push(`README.md is missing expected reviewer evidence: ${expected}`);
     }
+  }
+}
+
+for (const { filePath, expected } of requiredRuntimePolicyText) {
+  if (!existsSync(filePath)) {
+    failures.push(`runtime policy check cannot find: ${filePath}`);
+    continue;
+  }
+
+  const contents = readFileSync(filePath, "utf8");
+  if (!contents.includes(expected)) {
+    failures.push(`${filePath} is missing expected runtime policy text: ${expected}`);
   }
 }
 

@@ -14,6 +14,21 @@ It is a neutral prototype using synthetic data only. It does not connect to any 
 4. Use [local-docker-system.md](docs/local-docker-system.md) for the proven local Docker path across API, simulator, SQL Server and backend-mode web.
 5. Treat AWS EventBridge, SQS worker ingestion, DLQ replay and outbound EventBridge smoke as pending until live review evidence is captured.
 
+## Evidence Status
+
+| Area | Current status |
+| --- | --- |
+| API, worker, persistence and protected operations | Implemented with local automated tests and reviewer-evidence guards. |
+| Local Docker API, simulator, SQL Server and backend-mode web path | Proven by the local Docker system runbook. |
+| Terraform, EventBridge, SQS, DLQ and release-gate infrastructure | Defined for review, with dry-run and validation helpers. |
+| Live AWS deployment, worker consumption, DLQ replay and outbound EventBridge smoke | Pending until a short-lived review stack is applied, smoked and torn down. |
+
+## Runtime Policy
+
+The repository currently targets .NET 8 LTS through `Directory.Build.props`, pins the SDK in `global.json` with `rollForward: latestPatch`, uses .NET 8 EF tools and builds API, worker and migration-runner images from the matching `8.0-bookworm-slim` Microsoft images.
+
+Runtime upgrades are treated as explicit engineering changes, not reviewer-documentation cleanup. Use the [runtime upgrade policy](docs/runtime-upgrade-policy.md) before changing the target framework, SDK roll-forward, EF tools, Docker base images, CI checks, migration bundle or release-gate flow.
+
 ## Showcase Repositories
 
 | Repository | Responsibility |
@@ -146,6 +161,7 @@ Use Docker and database smokes only when container packaging or persistence is p
 - [Containerisation](docs/containerisation.md)
 - [AWS and Terraform](docs/aws-terraform.md)
 - [Migration release gate](docs/release-gate.md)
+- [Runtime upgrade policy](docs/runtime-upgrade-policy.md)
 - [Production-next](docs/production-next.md)
 
 ## Production Next
