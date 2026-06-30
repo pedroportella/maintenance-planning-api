@@ -43,6 +43,10 @@ public sealed class TestTokenAuthenticationHandler(
     {
         return token switch
         {
+            TestTokenNames.PlannerReadOnly => Principal(
+                "local-planner-read",
+                roles: Array.Empty<string>(),
+                scopes: new[] { ApiAuthorization.PlanningReadScope }),
             TestTokenNames.Planner => Principal(
                 "local-planner",
                 roles: new[] { ApiAuthorization.PlannerRole },

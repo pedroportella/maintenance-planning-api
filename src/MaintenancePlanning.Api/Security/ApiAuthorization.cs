@@ -8,6 +8,8 @@ public static class ApiAuthorization
     public const string AuthenticationScheme = "SyntheticTestBearer";
 
     public const string PlannerPolicy = "planner";
+    public const string PlannerReadPolicy = "planner.read";
+    public const string PlannerWritePolicy = "planner.write";
     public const string ImportsPolicy = "imports";
     public const string OperationsPolicy = "operations";
 
@@ -24,10 +26,15 @@ public static class ApiAuthorization
     {
         options.AddPolicy(
             PlannerPolicy,
-            policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
-                HasRole(context, PlannerRole)
-                || HasScope(context, PlanningReadScope)
-                || HasScope(context, PlanningWriteScope)));
+            policy => policy.RequireAuthenticatedUser().RequireAssertion(HasPlannerReadAccess));
+
+        options.AddPolicy(
+            PlannerReadPolicy,
+            policy => policy.RequireAuthenticatedUser().RequireAssertion(HasPlannerReadAccess));
+
+        options.AddPolicy(
+            PlannerWritePolicy,
+            policy => policy.RequireAuthenticatedUser().RequireAssertion(HasPlannerWriteAccess));
 
         options.AddPolicy(
             ImportsPolicy,
@@ -38,6 +45,19 @@ public static class ApiAuthorization
             OperationsPolicy,
             policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
                 HasRole(context, OperationsRole) || HasScope(context, OperationsReadScope)));
+    }
+
+    private static bool HasPlannerReadAccess(AuthorizationHandlerContext context)
+    {
+        return HasRole(context, PlannerRole)
+            || HasScope(context, PlanningReadScope)
+            || HasScope(context, PlanningWriteScope);
+    }
+
+    private static bool HasPlannerWriteAccess(AuthorizationHandlerContext context)
+    {
+        return HasRole(context, PlannerRole)
+            || HasScope(context, PlanningWriteScope);
     }
 
     private static bool HasRole(AuthorizationHandlerContext context, string role)

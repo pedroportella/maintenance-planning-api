@@ -46,7 +46,8 @@ Authorization: Bearer local-reviewer-token
 
 Local synthetic tokens are:
 
-- `local-planner-token` for planner reads and decisions;
+- `local-planner-read-token` for planner reads only;
+- `local-planner-token` for planner reads, planning runs and decisions;
 - `local-import-token` for source-system-shaped import feeds;
 - `local-operations-token` for operations posture and migration readiness;
 - `local-reviewer-token` for reviewer smoke checks across all policies.

@@ -9,12 +9,12 @@ public static class PlanningEndpoints
     {
         var planningRuns = endpoints
             .MapGroup("/api/v1/planning-runs")
-            .WithTags("Planning")
-            .RequireAuthorization(ApiAuthorization.PlannerPolicy);
+            .WithTags("Planning");
 
         planningRuns
             .MapPost("", CreatePlanningRunAsync)
             .WithName("CreatePlanningRun")
+            .RequireAuthorization(ApiAuthorization.PlannerWritePolicy)
             .RequireRateLimiting(ApiRateLimitPolicies.Command)
             .Accepts<CreatePlanningRunRequest>("application/json")
             .Produces<PlanningRunResult>(StatusCodes.Status202Accepted)
@@ -27,6 +27,7 @@ public static class PlanningEndpoints
         planningRuns
             .MapGet("/{id:guid}", GetPlanningRunAsync)
             .WithName("GetPlanningRun")
+            .RequireAuthorization(ApiAuthorization.PlannerReadPolicy)
             .Produces<PlanningRunResult>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
@@ -36,6 +37,7 @@ public static class PlanningEndpoints
         planningRuns
             .MapGet("/{id:guid}/recommendations", GetRecommendationsAsync)
             .WithName("GetPlanningRunRecommendations")
+            .RequireAuthorization(ApiAuthorization.PlannerReadPolicy)
             .Produces<PlanningRecommendationsResult>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
@@ -46,7 +48,7 @@ public static class PlanningEndpoints
             .MapPost("/api/v1/packages/{id:guid}/decisions", RecordPackageDecisionAsync)
             .WithName("RecordPackageDecision")
             .WithTags("Planning")
-            .RequireAuthorization(ApiAuthorization.PlannerPolicy)
+            .RequireAuthorization(ApiAuthorization.PlannerWritePolicy)
             .RequireRateLimiting(ApiRateLimitPolicies.Command)
             .Accepts<RecordPackageDecisionRequest>("application/json")
             .Produces<PackageDecisionResult>(StatusCodes.Status200OK)

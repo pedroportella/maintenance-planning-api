@@ -8,6 +8,12 @@ const shouldBuild = !process.argv.includes("--skip-build");
 const hostPort = process.env.HOST_PORT ?? String(await findFreePort());
 const containerName =
   process.env.CONTAINER_NAME ?? `maintenance-planning-api-smoke-${Date.now()}`;
+const tokens = {
+  plannerRead: "local-planner-read-token",
+  plannerWrite: "local-planner-token",
+  imports: "local-import-token",
+  operations: "local-operations-token"
+};
 
 if (shouldBuild) {
   execFileSync("node", ["scripts/container-build.mjs"], {
@@ -47,6 +53,7 @@ try {
   await waitForHealth("startup");
   await waitForHealth("live");
   await waitForHealth("ready");
+  await checkProtectedRoutes();
 
   const exitCode = stopContainer();
   console.log(`Container stopped cleanly with exit code ${exitCode}.`);
@@ -98,6 +105,82 @@ async function waitForHealth(name) {
   }
 
   throw new Error(`${name} health did not pass: ${lastError?.message ?? "timed out"}`);
+}
+
+async function checkProtectedRoutes() {
+  const checks = [
+    {
+      name: "planner read",
+      method: "GET",
+      path: "/api/v1/work-orders",
+      token: tokens.plannerRead,
+      expectedStatuses: [200, 503]
+    },
+    {
+      name: "planner write",
+      method: "POST",
+      path: "/api/v1/planning-runs",
+      token: tokens.plannerWrite,
+      body: {
+        horizonStartUtc: "2026-01-15T00:00:00Z",
+        horizonEndUtc: "2026-01-29T00:00:00Z",
+        requestedBy: "container-smoke"
+      },
+      expectedStatuses: [202, 503]
+    },
+    {
+      name: "imports",
+      method: "POST",
+      path: "/api/v1/imports/source-work-orders",
+      token: tokens.imports,
+      body: {
+        sourceSystem: "synthetic-source",
+        schemaVersion: "1.0",
+        idempotencyKey: `container-smoke-${Date.now()}`,
+        sourceWorkOrders: []
+      },
+      expectedStatuses: [200, 503]
+    },
+    {
+      name: "operations",
+      method: "GET",
+      path: "/api/v1/operations/posture",
+      token: tokens.operations,
+      expectedStatuses: [200]
+    }
+  ];
+
+  for (const check of checks) {
+    await checkProtectedRoute(check);
+  }
+}
+
+async function checkProtectedRoute({ name, method, path, token, body, expectedStatuses }) {
+  const headers = { Authorization: `Bearer ${token}` };
+  if (body) {
+    headers["content-type"] = "application/json";
+  }
+
+  const response = await fetch(`http://127.0.0.1:${hostPort}${path}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined
+  });
+
+  if (response.status === 401 || response.status === 403) {
+    throw new Error(`${name} protected route returned ${response.status}; authorization did not pass.`);
+  }
+
+  if (!expectedStatuses.includes(response.status)) {
+    const responseBody = await response.text();
+    throw new Error(
+      `${name} protected route returned ${response.status}; expected ${expectedStatuses.join(" or ")}. ${responseBody}`
+    );
+  }
+
+  const persistenceNote =
+    response.status === 503 ? " (accepted because persistence-backed route authorized before availability)" : "";
+  console.log(`${name} protected route passed with ${response.status}${persistenceNote}.`);
 }
 
 function stopContainer() {

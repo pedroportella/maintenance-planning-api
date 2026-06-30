@@ -10,7 +10,7 @@ public static class WorkOrderEndpoints
         var workOrders = endpoints
             .MapGroup("/api/v1/work-orders")
             .WithTags("Work Orders")
-            .RequireAuthorization(ApiAuthorization.PlannerPolicy);
+            .RequireAuthorization(ApiAuthorization.PlannerReadPolicy);
 
         workOrders
             .MapGet("", QueryWorkOrdersAsync)

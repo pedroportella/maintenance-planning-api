@@ -8,7 +8,7 @@ Implemented local review controls:
 - migration readiness reporting without automatic startup migrations;
 - graceful shutdown state for traffic eligibility;
 - synthetic bearer-token authentication for local review;
-- role/scope authorization policies for planner, imports and operations routes;
+- role/scope authorization policies for planner read, planner write, imports and operations routes;
 - command route rate limiting;
 - idempotent import and queued-event handling for safe retries and duplicate deliveries;
 - planner work-order querying with allow-listed filters and sorts;
@@ -20,7 +20,8 @@ Implemented local review controls:
 
 Local synthetic tokens:
 
-- `local-planner-token` for planner backlog, planning runs and package decisions;
+- `local-planner-read-token` for planner backlog reads only;
+- `local-planner-token` for planner backlog reads, planning runs and package decisions;
 - `local-import-token` for source-system-shaped import feeds;
 - `local-operations-token` for operations posture and migration readiness;
 - `local-reviewer-token` for local reviewer smokes across all policies.
@@ -29,7 +30,6 @@ Production-next controls:
 
 - replace local test tokens with issuer and audience validated JWT/OIDC configuration;
 - add object-level access checks once tenant or site ownership exists in the model;
-- split read and write policy checks where production roles need separate planner capabilities;
 - add retry idempotency for planning-run creation if clients need safe create retries;
 - add richer outbound event posture once deployed event smoke evidence exists.
 
