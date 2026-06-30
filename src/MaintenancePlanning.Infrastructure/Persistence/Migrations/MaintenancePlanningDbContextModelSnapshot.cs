@@ -322,6 +322,8 @@ namespace MaintenancePlanning.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Status", "ReceivedAtUtc");
+
                     b.HasIndex("SourceSystem", "IdempotencyKey")
                         .IsUnique();
 

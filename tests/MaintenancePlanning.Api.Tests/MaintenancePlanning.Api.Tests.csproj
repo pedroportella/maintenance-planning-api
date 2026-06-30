@@ -19,5 +19,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\MaintenancePlanning.Api\MaintenancePlanning.Api.csproj" />
     <ProjectReference Include="..\..\src\MaintenancePlanning.Application\MaintenancePlanning.Application.csproj" />
+    <ProjectReference Include="..\..\src\MaintenancePlanning.Infrastructure\MaintenancePlanning.Infrastructure.csproj" />
   </ItemGroup>
 </Project>
