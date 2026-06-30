@@ -47,7 +47,7 @@ The import result reports accepted, rejected, ignored duplicate and ignored stal
 
 The API records outbound planning events in the SQL outbox inside the same transaction as the planning change. The worker dispatches pending outbox rows to EventBridge when `MAINTENANCE_PLANNING_EVENT_BUS_NAME` is configured.
 
-Outbound publishing is an at-least-once delivery path. Downstream consumers should de-duplicate on the outbound `idempotencyKey` and tolerate a retry if EventBridge accepts an event but the worker fails before marking the outbox row as published.
+Outbound publishing is an at-least-once delivery path. Downstream consumers should de-duplicate on the outbound `idempotencyKey` and tolerate a retry if EventBridge accepts an event but the worker fails before marking the outbox row as published. The dispatcher validates each outbox `PayloadJson` as JSON before publishing; invalid local payload rows are marked failed with `outbox-payload-invalid-json` and are not retried forever.
 
 Outbound events use this envelope:
 
@@ -67,6 +67,8 @@ Initial outbound event types:
 
 - `planning.run.completed`
 - `planning.package.decision-recorded`
+
+The `planning.run.completed` idempotency key is `planning-run:{planningRunId}:completed`. The `planning.package.decision-recorded` idempotency key is `package:{packageId}:decision:{firstDecisionId}`.
 
 The AsyncAPI-style descriptor is [outbound-events.asyncapi.json](outbound-events.asyncapi.json). Checked JSON schemas live in:
 

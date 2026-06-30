@@ -13,7 +13,10 @@ public sealed class DeadLetterReplayService(
     private const int StatusUnprocessableEntity = 422;
     private const string SourceSystem = "eventing";
     private const string ImportKind = "dlq-replay";
+    private const string ReceivedStatus = "Received";
     private const string CompletedStatus = "Completed";
+    private const string FailedStatus = "Failed";
+    private const string ReplayStartFailedCode = "dead-letter-replay-start-failed";
 
     public async Task<DeadLetterReplayOutcome> StartReplayAsync(
         StartDeadLetterReplayRequest request,
@@ -39,9 +42,6 @@ public sealed class DeadLetterReplayService(
             return DeadLetterReplayOutcome.Failed(normalized.Problem);
         }
 
-        var replayTask = await replayClient.StartReplayAsync(
-            normalized.MaxMessagesPerSecond,
-            cancellationToken);
         var requestedAtUtc = DateTimeOffset.UtcNow;
         var auditId = Guid.NewGuid();
 
@@ -53,18 +53,50 @@ public sealed class DeadLetterReplayService(
                     ImportKind,
                     $"dlq-replay:{auditId:N}",
                     HashText($"{normalized.ReasonCode}|{normalized.RequestedBy}|{normalized.MaxMessagesPerSecond}"),
-                    CompletedStatus,
+                    ReceivedStatus,
                     0,
                     0,
                     0,
                     0,
                     0,
                     requestedAtUtc,
-                    requestedAtUtc,
+                    null,
                     null),
                 Array.Empty<IntegrationEventAuditRecord>(),
                 Array.Empty<WorkOrderImportRecord>(),
                 Array.Empty<MajorEventImportRecord>()),
+            cancellationToken);
+
+        DeadLetterMoveTask replayTask;
+        try
+        {
+            replayTask = await replayClient.StartReplayAsync(
+                normalized.MaxMessagesPerSecond,
+                cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            await importStore.UpdateImportStatusAsync(
+                auditId,
+                FailedStatus,
+                DateTimeOffset.UtcNow,
+                ReplayStartFailedCode,
+                cancellationToken);
+
+            return DeadLetterReplayOutcome.Failed(Unavailable(
+                "Replay audit was recorded, but the dead-letter replay task could not be started.",
+                ReplayStartFailedCode));
+        }
+
+        await importStore.UpdateImportStatusAsync(
+            auditId,
+            CompletedStatus,
+            DateTimeOffset.UtcNow,
+            null,
             cancellationToken);
 
         return DeadLetterReplayOutcome.Success(new DeadLetterReplayResult(

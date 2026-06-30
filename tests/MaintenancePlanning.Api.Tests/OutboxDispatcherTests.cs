@@ -54,6 +54,62 @@ public sealed class OutboxDispatcherTests
     }
 
     [Fact]
+    public async Task DispatchPendingAsync_MarksInvalidPayloadTerminalWithoutPublishing()
+    {
+        var message = new OutboxMessage(
+            Guid.NewGuid(),
+            "planning.run.completed",
+            "PlanningRun",
+            Guid.NewGuid(),
+            "{not-valid-json",
+            AttemptCount: 0);
+        var store = new InMemoryOutboxStore(message);
+        var publisher = new RecordingPublisher();
+        var dispatcher = new OutboxDispatcher(store, publisher);
+
+        var result = await dispatcher.DispatchPendingAsync(10, CancellationToken.None);
+
+        Assert.Equal("completed", result.Status);
+        Assert.Equal(0, result.PublishedCount);
+        Assert.Equal(1, result.FailedCount);
+        Assert.Empty(publisher.Published);
+        var failure = store.Failures.Single();
+        Assert.Equal(message.Id, failure.Id);
+        Assert.Equal("outbox-payload-invalid-json", failure.ErrorCode);
+        Assert.Equal(1, failure.MaxAttempts);
+    }
+
+    [Fact]
+    public async Task DispatchPendingAsync_KeepsPublishedButUnmarkedEventsRetryable()
+    {
+        var message = new OutboxMessage(
+            Guid.NewGuid(),
+            "planning.package.decision-recorded",
+            "WorkOrderPackage",
+            Guid.NewGuid(),
+            "{\"eventType\":\"planning.package.decision-recorded\"}",
+            AttemptCount: 0);
+        var store = new InMemoryOutboxStore(message)
+        {
+            FailMarkPublished = true
+        };
+        var publisher = new RecordingPublisher();
+        var dispatcher = new OutboxDispatcher(store, publisher);
+
+        var result = await dispatcher.DispatchPendingAsync(10, CancellationToken.None);
+
+        Assert.Equal("completed", result.Status);
+        Assert.Equal(0, result.PublishedCount);
+        Assert.Equal(1, result.FailedCount);
+        Assert.Equal(message.Id, publisher.Published.Single().Id);
+        Assert.Empty(store.Published);
+        var failure = store.Failures.Single();
+        Assert.Equal(message.Id, failure.Id);
+        Assert.Equal("eventbridge-publish-failed", failure.ErrorCode);
+        Assert.Equal(3, failure.MaxAttempts);
+    }
+
+    [Fact]
     public async Task DispatchPendingAsync_SkipsWhenPublisherIsNotConfigured()
     {
         var store = new InMemoryOutboxStore();
@@ -75,6 +131,8 @@ public sealed class OutboxDispatcherTests
 
         public List<FailureRecord> Failures { get; } = new();
 
+        public bool FailMarkPublished { get; init; }
+
         public Task<IReadOnlyList<OutboxMessage>> LoadPendingAsync(
             int maxEvents,
             DateTimeOffset dueAtUtc,
@@ -88,6 +146,11 @@ public sealed class OutboxDispatcherTests
             DateTimeOffset publishedAtUtc,
             CancellationToken cancellationToken)
         {
+            if (FailMarkPublished)
+            {
+                throw new InvalidOperationException("Mark published failed.");
+            }
+
             Published.Add(outboxEventId);
             return Task.CompletedTask;
         }

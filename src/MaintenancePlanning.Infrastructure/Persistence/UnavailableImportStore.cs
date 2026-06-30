@@ -39,4 +39,12 @@ internal sealed class UnavailableImportStore : IImportStore
         ImportPersistenceBatch batch,
         CancellationToken cancellationToken) =>
         throw new InvalidOperationException("Import persistence is not configured.");
+
+    public Task UpdateImportStatusAsync(
+        Guid importId,
+        string status,
+        DateTimeOffset completedAtUtc,
+        string? failureCode,
+        CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("Import persistence is not configured.");
 }

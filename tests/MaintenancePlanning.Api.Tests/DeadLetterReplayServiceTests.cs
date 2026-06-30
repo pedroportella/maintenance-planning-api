@@ -10,7 +10,7 @@ public sealed class DeadLetterReplayServiceTests
     public async Task StartReplayAsync_StartsReplayAndRecordsAudit()
     {
         var importStore = new InMemoryImportStore();
-        var replayClient = new RecordingReplayClient();
+        var replayClient = new RecordingReplayClient(importStore.Operations);
         var service = new DeadLetterReplayService(replayClient, importStore);
 
         var outcome = await service.StartReplayAsync(
@@ -32,6 +32,35 @@ public sealed class DeadLetterReplayServiceTests
         Assert.Equal("eventing", audit.SourceSystem);
         Assert.Equal("dlq-replay", audit.ImportKind);
         Assert.Equal("Completed", audit.Status);
+        Assert.NotNull(audit.CompletedAtUtc);
+        Assert.Equal(new[] { "audit-saved", "replay-started", "audit-updated" }, importStore.Operations);
+    }
+
+    [Fact]
+    public async Task StartReplayAsync_RecordsFailedAudit_WhenReplayClientThrows()
+    {
+        var importStore = new InMemoryImportStore();
+        var replayClient = new RecordingReplayClient(importStore.Operations, fail: true);
+        var service = new DeadLetterReplayService(replayClient, importStore);
+
+        var outcome = await service.StartReplayAsync(
+            new StartDeadLetterReplayRequest
+            {
+                ReasonCode = "review-dlq-retry",
+                RequestedBy = "operations-review",
+                MaxMessagesPerSecond = 5
+            },
+            CancellationToken.None);
+
+        Assert.Null(outcome.Result);
+        Assert.NotNull(outcome.Problem);
+        Assert.Equal(503, outcome.Problem.StatusCode);
+        Assert.Equal("dead-letter-replay-start-failed", outcome.Problem.Code);
+        var audit = Assert.Single(importStore.Imports);
+        Assert.Equal("Failed", audit.Status);
+        Assert.Equal("dead-letter-replay-start-failed", audit.FailureCode);
+        Assert.NotNull(audit.CompletedAtUtc);
+        Assert.Equal(new[] { "audit-saved", "replay-started", "audit-updated" }, importStore.Operations);
     }
 
     [Fact]
@@ -52,7 +81,9 @@ public sealed class DeadLetterReplayServiceTests
         Assert.Contains("reasonCode", outcome.Problem.Errors!.Keys);
     }
 
-    private sealed class RecordingReplayClient : IDeadLetterReplayClient
+    private sealed class RecordingReplayClient(
+        List<string>? operations = null,
+        bool fail = false) : IDeadLetterReplayClient
     {
         public bool IsConfigured => true;
 
@@ -62,7 +93,13 @@ public sealed class DeadLetterReplayServiceTests
             int? maxMessagesPerSecond,
             CancellationToken cancellationToken)
         {
+            operations?.Add("replay-started");
             MaxMessagesPerSecond = maxMessagesPerSecond;
+
+            if (fail)
+            {
+                throw new InvalidOperationException("Replay client failed.");
+            }
 
             return Task.FromResult(new DeadLetterMoveTask(
                 "replay-task-1",
@@ -76,6 +113,8 @@ public sealed class DeadLetterReplayServiceTests
         public bool IsConfigured => true;
 
         public List<StoredImport> Imports { get; } = new();
+
+        public List<string> Operations { get; } = new();
 
         public Task<StoredImport?> FindImportAsync(
             string sourceSystem,
@@ -120,6 +159,7 @@ public sealed class DeadLetterReplayServiceTests
             ImportPersistenceBatch batch,
             CancellationToken cancellationToken)
         {
+            Operations.Add("audit-saved");
             Imports.Add(new StoredImport(
                 batch.Import.Id,
                 batch.Import.SourceSystem,
@@ -136,6 +176,28 @@ public sealed class DeadLetterReplayServiceTests
                 batch.Import.ReceivedAtUtc,
                 batch.Import.CompletedAtUtc,
                 Array.Empty<ImportEventResult>()));
+
+            return Task.CompletedTask;
+        }
+
+        public Task UpdateImportStatusAsync(
+            Guid importId,
+            string status,
+            DateTimeOffset completedAtUtc,
+            string? failureCode,
+            CancellationToken cancellationToken)
+        {
+            Operations.Add("audit-updated");
+            var index = Imports.FindIndex(item => item.ImportId == importId);
+            if (index >= 0)
+            {
+                Imports[index] = Imports[index] with
+                {
+                    Status = status,
+                    CompletedAtUtc = completedAtUtc,
+                    FailureCode = failureCode
+                };
+            }
 
             return Task.CompletedTask;
         }

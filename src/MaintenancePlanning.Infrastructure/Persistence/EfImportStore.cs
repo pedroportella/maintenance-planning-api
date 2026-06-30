@@ -170,6 +170,29 @@ internal sealed class EfImportStore(MaintenancePlanningDbContext dbContext) : II
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task UpdateImportStatusAsync(
+        Guid importId,
+        string status,
+        DateTimeOffset completedAtUtc,
+        string? failureCode,
+        CancellationToken cancellationToken)
+    {
+        var import = await dbContext.IntegrationImports.SingleOrDefaultAsync(
+            item => item.Id == importId,
+            cancellationToken);
+
+        if (import is null)
+        {
+            return;
+        }
+
+        import.Status = Enum.Parse<IntegrationImportStatus>(status);
+        import.CompletedAtUtc = completedAtUtc;
+        import.FailureCode = CleanFailureCode(failureCode);
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     private async Task UpsertWorkOrderAsync(
         WorkOrderImportRecord record,
         CancellationToken cancellationToken)
@@ -283,6 +306,17 @@ internal sealed class EfImportStore(MaintenancePlanningDbContext dbContext) : II
             ReceivedAtUtc = record.ReceivedAtUtc,
             CompletedAtUtc = record.CompletedAtUtc
         };
+    }
+
+    private static string? CleanFailureCode(string? failureCode)
+    {
+        if (string.IsNullOrWhiteSpace(failureCode))
+        {
+            return null;
+        }
+
+        var clean = failureCode.Trim();
+        return clean.Length <= 80 ? clean : clean[..80];
     }
 
     private static IntegrationEvent ToEntity(IntegrationEventAuditRecord record)

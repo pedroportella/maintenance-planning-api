@@ -24,7 +24,7 @@ Errors should use `application/problem+json` with a correlation identifier.
 
 `GET /api/v1/operations/posture` reports whether import persistence is configured and, when available, the latest import freshness summary. When eventing is configured, it also reports approximate work-queue and dead-letter counts plus the latest queued-event ingestion failure code recorded in import audit.
 
-`POST /api/v1/operations/eventing/dead-letter-replays` starts a dead-letter queue replay command when eventing and replay audit storage are configured. It requires operations role or scope and records an audit row before returning `202 Accepted`:
+`POST /api/v1/operations/eventing/dead-letter-replays` starts a dead-letter queue replay command when eventing and replay audit storage are configured. It requires operations role or scope and records a replay audit before the queue replay call. A successful call updates the audit to `Completed` before returning `202 Accepted`; if the queue replay call fails after the audit is recorded, the audit is updated to `Failed` with `dead-letter-replay-start-failed`:
 
 ```json
 {
@@ -35,6 +35,8 @@ Errors should use `application/problem+json` with a correlation identifier.
 ```
 
 The response includes a replay task handle, source queue ARN, destination queue ARN and replay audit id. It does not expose message bodies or credentials.
+
+Dead-letter replay is an operator command, not an exactly-once HTTP request. A repeated `POST` creates a new replay audit and may start a separate provider replay task when accepted. Treat the returned audit id and replay task handle as the idempotency boundary, and repeat the command only after checking queue or task posture.
 
 ## Authentication
 
@@ -150,4 +152,4 @@ Planning endpoints require database persistence to be configured. When persisten
 
 Allowed decision values are `Accepted`, `Rejected` and `Deferred`. A decision updates package status and records one or more decision audit rows. Invalid decision payloads return `422`.
 
-Planning run completion and package decisions also create outbound domain-event outbox records in the same database transaction. The worker dispatches those records to the configured EventBridge bus when outbound publishing is enabled. Outbound delivery is at least once; consumers should de-duplicate on the outbound event idempotency key.
+Planning run completion and package decisions also create outbound domain-event outbox records in the same database transaction. The worker dispatches those records to the configured EventBridge bus when outbound publishing is enabled. Outbound delivery is at least once; consumers should de-duplicate on the outbound event idempotency key. Invalid local outbox JSON is marked failed before publish rather than retried indefinitely.

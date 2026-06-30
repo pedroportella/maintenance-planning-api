@@ -30,6 +30,13 @@ public interface IImportStore
     Task SaveImportAsync(
         ImportPersistenceBatch batch,
         CancellationToken cancellationToken);
+
+    Task UpdateImportStatusAsync(
+        Guid importId,
+        string status,
+        DateTimeOffset completedAtUtc,
+        string? failureCode,
+        CancellationToken cancellationToken);
 }
 
 public sealed record StoredImport(

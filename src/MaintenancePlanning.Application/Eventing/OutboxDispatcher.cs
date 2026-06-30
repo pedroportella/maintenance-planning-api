@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace MaintenancePlanning.Application.Eventing;
 
 public sealed class OutboxDispatcher(
@@ -8,6 +10,8 @@ public sealed class OutboxDispatcher(
     private const int DefaultMaxEvents = 10;
     private const int MaxEventsLimit = 50;
     private const int MaxAttempts = 3;
+    private const int InvalidPayloadMaxAttempts = 1;
+    private const string InvalidPayloadCode = "outbox-payload-invalid-json";
     private const string PublishFailedCode = "eventbridge-publish-failed";
 
     private static readonly TimeSpan RetryDelay = TimeSpan.FromMinutes(5);
@@ -35,6 +39,13 @@ public sealed class OutboxDispatcher(
 
         foreach (var message in messages)
         {
+            if (!IsValidPayloadJson(message.PayloadJson))
+            {
+                await MarkFailedAsync(message, InvalidPayloadCode, InvalidPayloadMaxAttempts, cancellationToken);
+                failed++;
+                continue;
+            }
+
             try
             {
                 await publisher.PublishAsync(message, cancellationToken);
@@ -43,12 +54,12 @@ public sealed class OutboxDispatcher(
             }
             catch (OutboundEventPublishException exception)
             {
-                await MarkFailedAsync(message, exception.ErrorCode, cancellationToken);
+                await MarkFailedAsync(message, exception.ErrorCode, MaxAttempts, cancellationToken);
                 failed++;
             }
             catch
             {
-                await MarkFailedAsync(message, PublishFailedCode, cancellationToken);
+                await MarkFailedAsync(message, PublishFailedCode, MaxAttempts, cancellationToken);
                 failed++;
             }
         }
@@ -64,14 +75,28 @@ public sealed class OutboxDispatcher(
     private Task MarkFailedAsync(
         OutboxMessage message,
         string errorCode,
+        int maxAttempts,
         CancellationToken cancellationToken)
     {
         return outboxStore.MarkFailedAsync(
             message.Id,
             CleanErrorCode(errorCode),
             DateTimeOffset.UtcNow.Add(RetryDelay),
-            MaxAttempts,
+            maxAttempts,
             cancellationToken);
+    }
+
+    private static bool IsValidPayloadJson(string payloadJson)
+    {
+        try
+        {
+            using var _ = JsonDocument.Parse(payloadJson);
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 
     private static string CleanErrorCode(string errorCode)

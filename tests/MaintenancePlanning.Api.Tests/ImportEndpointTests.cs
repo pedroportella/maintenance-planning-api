@@ -512,6 +512,27 @@ public sealed class ImportEndpointTests
             return Task.CompletedTask;
         }
 
+        public Task UpdateImportStatusAsync(
+            Guid importId,
+            string status,
+            DateTimeOffset completedAtUtc,
+            string? failureCode,
+            CancellationToken cancellationToken)
+        {
+            var index = _imports.FindIndex(item => item.ImportId == importId);
+            if (index >= 0)
+            {
+                _imports[index] = _imports[index] with
+                {
+                    Status = status,
+                    CompletedAtUtc = completedAtUtc,
+                    FailureCode = failureCode
+                };
+            }
+
+            return Task.CompletedTask;
+        }
+
         private static string SourceRecordKey(string sourceSystem, string sourceId)
         {
             return $"{sourceSystem}|{sourceId}";
