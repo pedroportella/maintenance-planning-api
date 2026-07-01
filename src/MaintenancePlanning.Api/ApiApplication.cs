@@ -18,7 +18,10 @@ namespace MaintenancePlanning.Api;
 
 public static class ApiApplication
 {
+    private const string OpenApiDocumentRoute = "/openapi/v1.json";
     private const int ShutdownTimeoutSeconds = 20;
+    private const string SwaggerUiEnabledConfigurationKey = "MaintenancePlanning:OpenApi:SwaggerUiEnabled";
+    private const string SwaggerUiRoutePrefix = "swagger";
 
     public static WebApplication Create(
         WebApplicationOptions options,
@@ -155,11 +158,13 @@ public static class ApiApplication
             options.RouteTemplate = "openapi/{documentName}.json";
         });
 
-        if (app.Environment.IsDevelopment())
+        if (IsSwaggerUiEnabled(app))
         {
             app.UseSwaggerUI(options =>
             {
-                options.SwaggerEndpoint("/openapi/v1.json", "Maintenance Planning API v1");
+                options.DocumentTitle = "Maintenance Planning API docs";
+                options.RoutePrefix = SwaggerUiRoutePrefix;
+                options.SwaggerEndpoint(OpenApiDocumentRoute, "Maintenance Planning API v1");
             });
         }
 
@@ -168,5 +173,11 @@ public static class ApiApplication
         app.MapPlanningEndpoints();
         app.MapWorkOrderEndpoints();
         app.MapOperationsEndpoints();
+    }
+
+    private static bool IsSwaggerUiEnabled(WebApplication app)
+    {
+        return app.Environment.IsDevelopment()
+            || app.Configuration.GetValue<bool>(SwaggerUiEnabledConfigurationKey);
     }
 }

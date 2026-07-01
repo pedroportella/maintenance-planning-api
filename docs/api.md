@@ -6,6 +6,7 @@ HTTP surface:
 - `GET /health/live`
 - `GET /health/ready`
 - `GET /openapi/v1.json`
+- `GET /swagger` when Swagger UI is enabled for development or explicit review configuration
 - `GET /api/v1/operations/migration-readiness`
 - `POST /api/v1/imports/source-work-orders`
 - `POST /api/v1/imports/maintenance-events`
@@ -40,7 +41,7 @@ Dead-letter replay is an operator command, not an exactly-once HTTP request. A r
 
 ## Authentication
 
-Health and OpenAPI routes are public for local readiness checks. API routes under `/api/v1` require a bearer token in local review mode:
+Health and OpenAPI routes are public for local readiness checks. Swagger UI is available at `/swagger` in `Development` and in production-like review hosts only when `MaintenancePlanning:OpenApi:SwaggerUiEnabled=true` is configured. API routes under `/api/v1` require a bearer token in local review mode:
 
 ```text
 Authorization: Bearer local-reviewer-token

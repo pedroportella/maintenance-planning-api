@@ -27,13 +27,14 @@ internal sealed class TestApiHost : IAsyncDisposable
     public static async Task<TestApiHost> StartAsync(
         Action<WebApplicationBuilder>? configureBuilder = null,
         Action<WebApplication>? configureApp = null,
-        bool authenticated = true)
+        bool authenticated = true,
+        string environmentName = "Production")
     {
         var app = ApiApplication.Create(
             new WebApplicationOptions
             {
                 ApplicationName = typeof(ApiApplication).Assembly.GetName().Name,
-                EnvironmentName = Environments.Production
+                EnvironmentName = environmentName
             },
             builder =>
             {

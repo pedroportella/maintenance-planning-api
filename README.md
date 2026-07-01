@@ -92,7 +92,7 @@ GET  /api/v1/planning-runs/{id}/recommendations
 POST /api/v1/packages/{id}/decisions
 ```
 
-Health and OpenAPI routes are public for local readiness checks. `/api/v1` routes require synthetic local bearer tokens such as `local-reviewer-token`.
+Health and OpenAPI routes are public for local readiness checks. Swagger UI is available at `/swagger` in `Development` and in production-like review hosts only when `MaintenancePlanning:OpenApi:SwaggerUiEnabled=true` is configured. `/api/v1` routes require synthetic local bearer tokens such as `local-reviewer-token`.
 
 ## Run Locally
 
@@ -119,6 +119,7 @@ Open:
 
 - Health: `http://localhost:5000/health/ready`
 - OpenAPI: `http://localhost:5000/openapi/v1.json`
+- Swagger UI: `http://localhost:5000/swagger`
 
 The API reports pending migrations but does not apply schema changes during startup. Use the [local Docker system runbook](docs/local-docker-system.md) for the full API, simulator, SQL Server and backend-mode web review path.
 
