@@ -15,6 +15,9 @@ public static class ImportEndpoints
         imports
             .MapPost("/source-work-orders", ImportSourceWorkOrdersAsync)
             .WithName("ImportSourceWorkOrders")
+            .WithSummary("Import synthetic source work orders")
+            .WithDescription(
+                "Protected import route for source-system-shaped work-order batches. Requires a synthetic bearer token with import capability.")
             .RequireRateLimiting(ApiRateLimitPolicies.Command)
             .Accepts<SourceWorkOrderImportRequest>("application/json")
             .Produces<ImportResult>(StatusCodes.Status200OK)
@@ -28,6 +31,9 @@ public static class ImportEndpoints
         imports
             .MapPost("/maintenance-events", ImportMaintenanceEventsAsync)
             .WithName("ImportMaintenanceEvents")
+            .WithSummary("Import synthetic maintenance events")
+            .WithDescription(
+                "Protected import route for versioned maintenance-event batches. Requires a synthetic bearer token with import capability.")
             .RequireRateLimiting(ApiRateLimitPolicies.Command)
             .Accepts<MaintenanceEventImportRequest>("application/json")
             .Produces<ImportResult>(StatusCodes.Status200OK)

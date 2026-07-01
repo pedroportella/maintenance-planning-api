@@ -15,6 +15,9 @@ public static class WorkOrderEndpoints
         workOrders
             .MapGet("", QueryWorkOrdersAsync)
             .WithName("ListWorkOrders")
+            .WithSummary("List work orders")
+            .WithDescription(
+                "Protected planner read route that returns a filtered backlog page with readiness and source-data issue summaries.")
             .Produces<WorkOrderQueryResult>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
@@ -24,6 +27,9 @@ public static class WorkOrderEndpoints
         workOrders
             .MapGet("/{id:guid}", GetWorkOrderAsync)
             .WithName("GetWorkOrder")
+            .WithSummary("Get work-order detail")
+            .WithDescription(
+                "Protected planner read route that returns one work order with planning readiness, source identifiers and issue detail.")
             .Produces<WorkOrderDetailResult>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)

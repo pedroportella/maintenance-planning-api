@@ -13,6 +13,8 @@ public static class HealthEndpoints
             .MapGet("/startup", (HealthCheckService healthChecks, CancellationToken cancellationToken) =>
                 CheckHealthAsync(healthChecks, HealthCheckTags.Startup, cancellationToken))
             .WithName("GetStartupHealth")
+            .WithSummary("Get startup health")
+            .WithDescription("Public probe for startup completion. Returns unhealthy until hosted services have completed startup.")
             .Produces<HealthEndpointResponse>(StatusCodes.Status200OK)
             .Produces<HealthEndpointResponse>(StatusCodes.Status503ServiceUnavailable);
 
@@ -20,6 +22,8 @@ public static class HealthEndpoints
             .MapGet("/live", (HealthCheckService healthChecks, CancellationToken cancellationToken) =>
                 CheckHealthAsync(healthChecks, HealthCheckTags.Live, cancellationToken))
             .WithName("GetLivenessHealth")
+            .WithSummary("Get liveness health")
+            .WithDescription("Public probe that reports whether the API process is running and not shutting down.")
             .Produces<HealthEndpointResponse>(StatusCodes.Status200OK)
             .Produces<HealthEndpointResponse>(StatusCodes.Status503ServiceUnavailable);
 
@@ -27,6 +31,8 @@ public static class HealthEndpoints
             .MapGet("/ready", (HealthCheckService healthChecks, CancellationToken cancellationToken) =>
                 CheckHealthAsync(healthChecks, HealthCheckTags.Ready, cancellationToken))
             .WithName("GetReadinessHealth")
+            .WithSummary("Get readiness health")
+            .WithDescription("Public probe for dependencies required to handle local review traffic.")
             .Produces<HealthEndpointResponse>(StatusCodes.Status200OK)
             .Produces<HealthEndpointResponse>(StatusCodes.Status503ServiceUnavailable);
 

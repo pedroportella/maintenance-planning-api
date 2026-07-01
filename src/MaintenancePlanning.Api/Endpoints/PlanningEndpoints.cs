@@ -14,6 +14,9 @@ public static class PlanningEndpoints
         planningRuns
             .MapPost("", CreatePlanningRunAsync)
             .WithName("CreatePlanningRun")
+            .WithSummary("Create a planning run")
+            .WithDescription(
+                "Protected planner command that creates deterministic package recommendations over imported synthetic work orders. Requires planner write capability.")
             .RequireAuthorization(ApiAuthorization.PlannerWritePolicy)
             .RequireRateLimiting(ApiRateLimitPolicies.Command)
             .Accepts<CreatePlanningRunRequest>("application/json")
@@ -28,6 +31,9 @@ public static class PlanningEndpoints
         planningRuns
             .MapGet("/{id:guid}", GetPlanningRunAsync)
             .WithName("GetPlanningRun")
+            .WithSummary("Get planning run status")
+            .WithDescription(
+                "Protected planner read route that returns status, horizon and recommendation counts for one planning run.")
             .RequireAuthorization(ApiAuthorization.PlannerReadPolicy)
             .Produces<PlanningRunResult>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
@@ -38,6 +44,9 @@ public static class PlanningEndpoints
         planningRuns
             .MapGet("/{id:guid}/recommendations", GetRecommendationsAsync)
             .WithName("GetPlanningRunRecommendations")
+            .WithSummary("List planning run recommendations")
+            .WithDescription(
+                "Protected planner read route that returns recommended packages, blockers, scores and prior planner decisions.")
             .RequireAuthorization(ApiAuthorization.PlannerReadPolicy)
             .Produces<PlanningRecommendationsResult>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
@@ -49,6 +58,9 @@ public static class PlanningEndpoints
             .MapPost("/api/v1/packages/{id:guid}/decisions", RecordPackageDecisionAsync)
             .WithName("RecordPackageDecision")
             .WithTags("Planning")
+            .WithSummary("Record a package decision")
+            .WithDescription(
+                "Protected planner command that audits an accepted, rejected or deferred recommendation decision. Requires planner write capability.")
             .RequireAuthorization(ApiAuthorization.PlannerWritePolicy)
             .RequireRateLimiting(ApiRateLimitPolicies.Command)
             .Accepts<RecordPackageDecisionRequest>("application/json")

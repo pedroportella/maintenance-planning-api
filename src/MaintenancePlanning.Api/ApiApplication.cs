@@ -3,6 +3,7 @@ using MaintenancePlanning.Api.Errors;
 using MaintenancePlanning.Api.Health;
 using MaintenancePlanning.Api.Hosting;
 using MaintenancePlanning.Api.Middleware;
+using MaintenancePlanning.Api.OpenApi;
 using MaintenancePlanning.Api.Security;
 using MaintenancePlanning.Application.Eventing;
 using MaintenancePlanning.Application.Imports;
@@ -126,7 +127,7 @@ public static class ApiApplication
                     Description = "Production-shaped review API for synthetic maintenance-planning workflows."
                 });
             options.AddSecurityDefinition(
-                "Bearer",
+                OpenApiDocumentMetadata.BearerSecuritySchemeId,
                 new OpenApiSecurityScheme
                 {
                     Name = "Authorization",
@@ -136,6 +137,8 @@ public static class ApiApplication
                     BearerFormat = "local-test-token",
                     Description = "Use synthetic local review tokens only. Runtime JWT/OIDC issuer wiring is a later deployment concern."
                 });
+            options.OperationFilter<AuthorizeOperationSecurityFilter>();
+            options.DocumentFilter<OpenApiTagDescriptionsDocumentFilter>();
         });
     }
 

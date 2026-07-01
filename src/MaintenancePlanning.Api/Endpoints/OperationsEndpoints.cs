@@ -22,6 +22,9 @@ public static class OperationsEndpoints
         operations
             .MapGet("/migration-readiness", CheckMigrationReadinessAsync)
             .WithName("GetMigrationReadiness")
+            .WithSummary("Check migration readiness")
+            .WithDescription(
+                "Protected operations route that reports database configuration, reachability and migration state without applying migrations.")
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .Produces<MigrationReadinessReport>(StatusCodes.Status200OK)
@@ -30,6 +33,9 @@ public static class OperationsEndpoints
         operations
             .MapGet("/posture", GetPostureAsync)
             .WithName("GetOperationsPosture")
+            .WithSummary("Get operations posture")
+            .WithDescription(
+                "Protected operations route that reports import freshness, stale received imports, eventing posture and outbox backlog.")
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .Produces<OperationsPostureReport>(StatusCodes.Status200OK);
@@ -37,6 +43,9 @@ public static class OperationsEndpoints
         operations
             .MapPost("/eventing/dead-letter-replays", StartDeadLetterReplayAsync)
             .WithName("StartDeadLetterReplay")
+            .WithSummary("Start a dead-letter replay")
+            .WithDescription(
+                "Protected operations command that records a replay audit and asks the configured provider to move dead-letter messages for review recovery.")
             .RequireRateLimiting(ApiRateLimitPolicies.Command)
             .Accepts<StartDeadLetterReplayRequest>("application/json")
             .Produces<DeadLetterReplayResult>(StatusCodes.Status202Accepted)
